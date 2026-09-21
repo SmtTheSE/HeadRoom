@@ -19,6 +19,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Session } from "@supabase/supabase-js";
 import {
   ArrowLeft,
+  ChartNoAxesColumn,
+  Folder,
+  House,
   ArrowRight,
   Check,
   ChevronDown,
@@ -481,23 +484,23 @@ export default function App() {
         </Link>
         <nav aria-label="Main">
           <NavLink to={`/${role}/dashboard`}>
-            <LayoutDashboard size={19} />
+            <House size={18} />
             {role === "employee" ? "My overview" : "Team overview"}
           </NavLink>
           {role === "employee" && (
             <>
               <NavLink to="/employee/tasks">
-                <ListTodo size={19} />
+                <Folder size={18} />
                 My tasks
               </NavLink>
               <NavLink to="/employee/capacity">
-                <Gauge size={19} />
+                <ChartNoAxesColumn size={18} />
                 My capacity
               </NavLink>
             </>
           )}
           <NavLink to={`/${role}/negotiations`}>
-            <MessageSquare size={19} />
+            <MessageSquare size={18} />
             Workload requests
             {pending > 0 && <span className="nav-count">{pending}</span>}
           </NavLink>
