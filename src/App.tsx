@@ -953,35 +953,23 @@ function Dashboard({
             {greeting(now)}, {userName} · {longDate.format(now)} ·{" "}
             {clock.format(now)}
           </div>
-          <span className="overline">Current task</span>
-          <h1>{current ? current.title : "No open focus items"}</h1>
-          {current && parent ? (
-            <p className="current-meta">
-              <span className="current-label">Main task:</span>
-              <Link to={`/employee/tasks/${parent.id}`}>{parent.title}</Link>
-              <span className="bullet">·</span>
-              {current.minutes >= 60
-                ? `${hours(current.minutes / 60)}h`
-                : `${current.minutes} min`}
-              <span className="bullet">·</span>
-              Due {due(parent.deadline, true)}
-            </p>
-          ) : (
-            <p className="current-meta">
-              All focus steps for today are complete.
-            </p>
-          )}
+          <div className="task-pair">
+            <div>
+              <span className="overline">Current task</span>
+              <h1>{current ? current.title : "No open focus items"}</h1>
+            </div>
+            {current && parent && (
+              <div>
+                <span className="overline">Main task</span>
+                <h1>
+                  <Link to={`/employee/tasks/${parent.id}`}>
+                    {parent.title}
+                  </Link>
+                </h1>
+              </div>
+            )}
+          </div>
         </div>
-        {current && (
-          <button
-            className="btn primary"
-            disabled={busy}
-            onClick={() => run("subtask", { id: current.id })}
-          >
-            <Check size={16} />
-            Mark step complete
-          </button>
-        )}
       </div>
       <TaskInbox state={state} busy={busy} run={run} />
       {resolved && (
