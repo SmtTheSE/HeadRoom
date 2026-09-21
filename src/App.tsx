@@ -944,8 +944,13 @@ function Dashboard({
   return (
     <>
       <PageHeading
-        eyebrow={`${longDate.format(now)} · ${clock.format(now)}`}
-        title={`${greeting(now)}, ${userName}.`}
+        eyebrow={`${longDate.format(now)} · ${clock.format(now)} · ${userName}`}
+        title={focus[0]?.title ?? "You’re all caught up."}
+        subtitle={
+          focus[0]
+            ? `Current task · Main task: ${state.tasks.find((t) => t.id === focus[0].task_id)?.title}`
+            : "No focus steps left for today."
+        }
       />
       <TaskInbox state={state} busy={busy} run={run} />
       {resolved && (
