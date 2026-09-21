@@ -98,6 +98,7 @@ What is implemented:
 - Native `<dialog>` modals labelled by their heading; focus moves in on open and back to the trigger on close; Escape closes.
 - Toggle and filter controls expose `aria-pressed`; the proposal chooser is a real radio group with arrow-key navigation; the Teams inbox uses `aria-expanded` and named confirm/remove actions.
 - Live regions for status; error messages persist until dismissed, success messages time out.
+- Reversible actions (ticking a step, logging hours, removing a potential task) offer **Undo** in the notification instead of asking first; irreversible ones (complete task, decline or cancel a request, reset) ask for confirmation in a dialog that names the consequence.
 - All text and status colours meet 4.5:1; status is never conveyed by colour alone; focus rings are 2 px ink.
 - Font sizes in `rem`, so browser text-size preferences apply; layout reflows to 320 px.
 - Decorative separators and icons are hidden from assistive technology.

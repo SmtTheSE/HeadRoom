@@ -63,11 +63,14 @@ import {
 } from "./domain";
 import type { AppState, Negotiation, Proposal, Role, Task } from "./types";
 
+type Undo = () => Promise<boolean> | boolean | void;
 type Run = (
   op: string,
   payload?: Record<string, unknown>,
   message?: string,
+  undo?: Undo,
 ) => Promise<boolean>;
+type Notify = (text: string, undo?: Undo) => void;
 type Breakdown = (task: Task) => Promise<boolean>;
 type AiState = { taskId: string; phase: "working" | "done" } | null;
 function Badge({ load, capacity }: { load: number; capacity: number }) {
@@ -300,6 +303,44 @@ function DisplayPanel({ onClose }: { onClose: () => void }) {
     </Modal>
   );
 }
+/** Confirmation for destructive or irreversible actions. */
+function ConfirmDialog({
+  title,
+  children,
+  confirmLabel,
+  danger = false,
+  busy,
+  onConfirm,
+  onClose,
+}: {
+  title: string;
+  children: ReactNode;
+  confirmLabel: string;
+  danger?: boolean;
+  busy: boolean;
+  onConfirm: () => Promise<boolean> | boolean;
+  onClose: () => void;
+}) {
+  return (
+    <Modal title={title} onClose={onClose}>
+      <p className="muted">{children}</p>
+      <div className="modal-actions">
+        <button className="btn secondary" onClick={onClose}>
+          Cancel
+        </button>
+        <button
+          className={`btn ${danger ? "danger" : "primary"}`}
+          disabled={busy}
+          onClick={async () => {
+            if (await onConfirm()) onClose();
+          }}
+        >
+          {confirmLabel}
+        </button>
+      </div>
+    </Modal>
+  );
+}
 function Segmented<T extends string>({
   options,
   value,
@@ -429,6 +470,7 @@ export default function App() {
     [notice, setNoticeState] = useState<{
       text: string;
       tone: "success" | "error";
+      undo?: Undo;
     } | null>(null),
     [resetOpen, setResetOpen] = useState(false);
   const [llmApiEnabled, setLlmApiEnabled] = useState(() => {
@@ -451,8 +493,12 @@ export default function App() {
     mode: "request" | "counter" | "revise";
     request?: Negotiation;
   } | null>(null);
-  const setNotice = (text: string, tone: "success" | "error" = "success") =>
-    setNoticeState(text ? { text, tone } : null);
+  const setNotice = (
+    text: string,
+    tone: "success" | "error" = "success",
+    undo?: Undo,
+  ) => setNoticeState(text ? { text, tone, undo } : null);
+  const notify: Notify = (text, undo) => setNotice(text, "success", undo);
   const location = useLocation(),
     navigate = useNavigate(),
     cache = useQueryClient();
@@ -550,10 +596,10 @@ export default function App() {
   }, [session?.user.id, query.data?.workspace.id, cache]);
   useEffect(() => {
     if (!notice || notice.tone === "error") return;
-    const timer = setTimeout(() => setNotice(""), 9000);
+    const timer = setTimeout(() => setNotice(""), notice.undo ? 12000 : 7000);
     return () => clearTimeout(timer);
   }, [notice]);
-  const run: Run = async (op, payload = {}, message) => {
+  const run: Run = async (op, payload = {}, message, undo) => {
     if (!session) {
       navigate("/sign-in");
       return false;
@@ -580,6 +626,8 @@ export default function App() {
               : op === "reset"
                 ? "Demo workspace reset to its starting state."
                 : "Changes saved."),
+        "success",
+        undo,
       );
       return true;
     } catch (error) {
@@ -683,6 +731,18 @@ export default function App() {
       role={notice.tone === "error" ? "alert" : "status"}
     >
       <span>{notice.text}</span>
+      {notice.undo && (
+        <button
+          className="toast-action"
+          onClick={async () => {
+            const undo = notice.undo!;
+            setNotice("");
+            await undo();
+          }}
+        >
+          Undo
+        </button>
+      )}
       <button onClick={() => setNotice("")} aria-label="Dismiss message">
         <X size={16} />
       </button>
@@ -891,6 +951,7 @@ export default function App() {
                     state={state}
                     busy={busy}
                     run={run}
+                    notify={notify}
                     resolve={() => setCompose({ mode: "request" })}
                     userName={firstName(session, "Alex")}
                   />
@@ -973,32 +1034,16 @@ export default function App() {
       </div>
       {toast}
       {resetOpen && (
-        <Modal
+        <ConfirmDialog
           title="Reset demo workspace?"
+          confirmLabel="Reset demo"
+          busy={busy}
+          onConfirm={() => run("reset")}
           onClose={() => setResetOpen(false)}
         >
-          <p className="muted">
-            This restores the sample tasks, time entries, and requests to the
-            starting workload of 28 / 30h. Only your demo workspace is affected.
-          </p>
-          <div className="modal-actions">
-            <button
-              className="btn secondary"
-              onClick={() => setResetOpen(false)}
-            >
-              Cancel
-            </button>
-            <button
-              className="btn primary"
-              disabled={busy}
-              onClick={async () => {
-                if (await run("reset")) setResetOpen(false);
-              }}
-            >
-              Reset demo
-            </button>
-          </div>
-        </Modal>
+          This restores the sample tasks, time entries, and requests to the
+          starting workload of 28 / 30h. Only your demo workspace is affected.
+        </ConfirmDialog>
       )}
       {compose && (
         <Composer
@@ -1242,7 +1287,12 @@ function FocusPage({
     );
   const finish = async () => {
     if (
-      await run("subtask", { id: step.id }, stepDoneMessage(queue, step.id))
+      await run(
+        "subtask",
+        { id: step.id },
+        stepDoneMessage(queue, step.id),
+        () => run("subtask", { id: step.id }, "Step reopened."),
+      )
     ) {
       localStorage.removeItem(FOCUS_KEY);
       setJustDone(true);
@@ -1459,12 +1509,14 @@ function Dashboard({
   state,
   busy,
   run,
+  notify,
   resolve,
   userName,
 }: {
   state: AppState;
   busy: boolean;
   run: Run;
+  notify: Notify;
   resolve: () => void;
   userName: string;
 }) {
@@ -1493,7 +1545,7 @@ function Dashboard({
         eyebrow={`${longDate.format(now)} · ${clock.format(now)}`}
         title={`${greeting(now)}, ${userName}.`}
       />
-      <TaskInbox state={state} busy={busy} run={run} />
+      <TaskInbox state={state} busy={busy} run={run} notify={notify} />
       {resolved && (
         <div className="banner success">
           <div>
@@ -1545,7 +1597,12 @@ function Dashboard({
                   className={`check-circle ${i === 0 ? "first" : ""}`}
                   disabled={busy}
                   onClick={() =>
-                    run("subtask", { id: s.id }, stepDoneMessage(focus, s.id))
+                    run(
+                      "subtask",
+                      { id: s.id },
+                      stepDoneMessage(focus, s.id),
+                      () => run("subtask", { id: s.id }, "Step reopened."),
+                    )
                   }
                 >
                   <Check size={16} />
@@ -1646,10 +1703,12 @@ function TaskInbox({
   state,
   busy,
   run,
+  notify,
 }: {
   state: AppState;
   busy: boolean;
   run: Run;
+  notify: Notify;
 }) {
   const [dismissed, setDismissed] = useState<string[]>(readDismissed);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -1675,10 +1734,16 @@ function TaskInbox({
         </button>
       </div>
     );
-  const dismiss = (id: string) => {
-    const next = [...dismissed, id];
+  const persist = (next: string[]) => {
     setDismissed(next);
     localStorage.setItem(DISMISSED_KEY, JSON.stringify(next));
+  };
+  const dismiss = (id: string) => {
+    const title = drafts.find((t) => t.id === id)?.title ?? "Task";
+    persist([...dismissed, id]);
+    notify(`${title} removed — not a task.`, () => {
+      persist(dismissed.filter((x) => x !== id));
+    });
   };
   return (
     <section className="inbox" aria-label="Potential new tasks">
@@ -2183,7 +2248,19 @@ function TaskDetail({
                   checked={s.completed}
                   disabled={busy || disabled}
                   onChange={() =>
-                    run("subtask", { id: s.id }, stepDoneMessage(subs, s.id))
+                    run(
+                      "subtask",
+                      { id: s.id },
+                      stepDoneMessage(subs, s.id),
+                      () =>
+                        run(
+                          "subtask",
+                          { id: s.id },
+                          s.completed
+                            ? "Step completed again."
+                            : "Step reopened.",
+                        ),
+                    )
                   }
                 />
                 <span>{s.title}</span>
@@ -2240,7 +2317,20 @@ function TaskDetail({
           <button
             className="btn secondary"
             disabled={busy || disabled || actual === ""}
-            onClick={() => run("hours", { id, actual_hours: Number(actual) })}
+            onClick={() => {
+              const previous = task.actual_hours;
+              void run(
+                "hours",
+                { id, actual_hours: Number(actual) },
+                `${actual} hours logged.`,
+                () =>
+                  run(
+                    "hours",
+                    { id, actual_hours: previous },
+                    `Hours restored to ${previous}.`,
+                  ),
+              );
+            }}
           >
             Log hours
           </button>
@@ -2260,33 +2350,18 @@ function TaskDetail({
         </div>
       </section>
       {completeOpen && (
-        <Modal
+        <ConfirmDialog
           title="Complete this task?"
+          confirmLabel="Complete task"
+          busy={busy}
+          onConfirm={() =>
+            run("complete", { id, actual_hours: Number(actual) })
+          }
           onClose={() => setCompleteOpen(false)}
         >
-          <p className="muted">
-            This logs {actual} hours, marks all remaining steps complete, and
-            updates the estimates used for future tasks.
-          </p>
-          <div className="modal-actions">
-            <button
-              className="btn secondary"
-              onClick={() => setCompleteOpen(false)}
-            >
-              Cancel
-            </button>
-            <button
-              className="btn primary"
-              disabled={busy}
-              onClick={async () => {
-                if (await run("complete", { id, actual_hours: Number(actual) }))
-                  setCompleteOpen(false);
-              }}
-            >
-              Complete task
-            </button>
-          </div>
-        </Modal>
+          This logs {actual} hours, marks all remaining steps complete, and
+          updates the estimates used for future tasks. This cannot be undone.
+        </ConfirmDialog>
       )}
     </>
   );
@@ -2914,6 +2989,7 @@ function RequestDetail({
     n = state.negotiations.find((n) => n.id === id);
   if (!n) return <NotFound />;
   const open = ["pending", "counter_proposed"].includes(n.status);
+  const [confirm, setConfirm] = useState<"decline" | "cancel" | null>(null);
   const task = state.tasks.find((t) => t.id === n.proposal.task_id);
   const stale = task?.version !== n.proposal.task_version;
   return (
@@ -2972,7 +3048,7 @@ function RequestDetail({
               <button
                 className="btn text-danger"
                 disabled={busy}
-                onClick={() => run("decline", { id })}
+                onClick={() => setConfirm("decline")}
               >
                 Decline
               </button>
@@ -3000,7 +3076,7 @@ function RequestDetail({
             <button
               className="btn secondary"
               disabled={busy}
-              onClick={() => run("cancel", { id })}
+              onClick={() => setConfirm("cancel")}
             >
               Cancel request
             </button>
@@ -3034,6 +3110,32 @@ function RequestDetail({
             ))}
         </div>
       </section>
+      {confirm === "decline" && (
+        <ConfirmDialog
+          title="Decline this request?"
+          confirmLabel="Decline request"
+          danger
+          busy={busy}
+          onConfirm={() => run("decline", { id }, "Request declined.")}
+          onClose={() => setConfirm(null)}
+        >
+          Alex Morgan will be notified and current assignments stay unchanged.
+          To suggest a different adjustment instead, use Counter-propose.
+        </ConfirmDialog>
+      )}
+      {confirm === "cancel" && (
+        <ConfirmDialog
+          title="Cancel this request?"
+          confirmLabel="Cancel request"
+          danger
+          busy={busy}
+          onConfirm={() => run("cancel", { id }, "Request cancelled.")}
+          onClose={() => setConfirm(null)}
+        >
+          The request is withdrawn and Sarah Lee can no longer respond to it.
+          You can submit a new request at any time.
+        </ConfirmDialog>
+      )}
     </>
   );
 }

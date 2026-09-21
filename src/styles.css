@@ -1892,36 +1892,65 @@ td:last-child {
 }
 .toast {
   position: fixed;
-  right: 24px;
   bottom: 24px;
+  left: 50%;
   z-index: 100;
   display: flex;
   align-items: center;
-  gap: 10px;
-  max-width: min(480px, calc(100vw - 48px));
-  padding: 12px 14px 12px 16px;
-  border: 1px solid var(--line);
+  gap: 14px;
+  max-width: min(560px, calc(100vw - 32px));
+  padding: 12px 10px 12px 18px;
   border-radius: 12px;
-  background: var(--surface);
-  box-shadow: var(--shadow);
-  font-size: 0.875rem;
-  color: var(--ink);
+  background: var(--ink);
+  color: #fff;
+  box-shadow: 0 12px 32px rgb(31 30 28 / 0.28);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  transform: translateX(-50%);
+  animation: toast-in 0.22s ease both;
 }
-.toast.success > svg {
-  color: var(--green-text);
+@keyframes toast-in {
+  from {
+    transform: translate(-50%, 10px);
+  }
+  to {
+    transform: translate(-50%, 0);
+  }
 }
-.toast.error > svg {
-  color: var(--red-text);
+.toast > span:first-child {
+  flex: 1;
 }
-.toast button {
+.toast.error {
+  box-shadow:
+    inset 3px 0 0 #f1a28c,
+    0 12px 32px rgb(31 30 28 / 0.28);
+}
+.toast-action {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  color: var(--brand-lime);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.toast-action:hover {
+  background: rgb(255 255 255 / 0.1);
+}
+.toast > button:last-child {
   display: inline-flex;
-  padding: 4px;
-  border-radius: 6px;
-  color: var(--muted);
+  flex-shrink: 0;
+  padding: 6px;
+  border-radius: 8px;
+  color: rgb(255 255 255 / 0.7);
 }
-.toast button:hover {
-  background: var(--oat);
-  color: var(--ink);
+.toast > button:last-child:hover {
+  background: rgb(255 255 255 / 0.1);
+  color: #fff;
+}
+.toast :focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
 }
 
 /* ---------- modal ---------- */
@@ -2624,10 +2653,8 @@ td:last-child {
     padding: 22px;
   }
   .toast {
-    right: 16px;
-    bottom: 16px;
-    left: 16px;
-    max-width: none;
+    bottom: 12px;
+    max-width: calc(100vw - 24px);
   }
   .profile-popover {
     right: 16px;
