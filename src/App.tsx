@@ -1040,7 +1040,7 @@ function SignInPage({
           <p className="signin-sub">
             The AI-enabled workspace where teams plan by capacity. See what each
             person can take on, break work into clear steps, and settle
-            adjustments with managers before deadlines slip.
+            adjustments with superiors before deadlines slip.
           </p>
           <div className="signin-card">
             <button className="btn provider" disabled={busy} onClick={onGoogle}>
@@ -1521,7 +1521,7 @@ function Dashboard({
             <strong>This week exceeds your capacity.</strong>
             <span>
               Workload is {hours(load - 30)}h over capacity. Review adjustment
-              options with your manager.
+              options with your superior.
             </span>
           </div>
           {open ? (
@@ -2683,7 +2683,7 @@ function Requests({
     <>
       <PageHeading
         title="Workload requests"
-        subtitle="Review and agree workload adjustments with your manager."
+        subtitle="Review and agree workload adjustments with your superior."
       >
         {role === "employee" &&
           workload(state.tasks) > 30 &&
