@@ -80,6 +80,22 @@ supabase functions deploy breakdown
 
 Optionally set `GEMINI_MODEL` to another compatible model. The hosted app calls this Edge Function; local configuration does not activate the hosted version. Its prompt treats task text as data, requests concrete ordered actions and observable outputs, and forbids invented requirements. Authentication, owner-isolated task loading, stale-version checks, and an instance-local rate limit run before generation. The rate limit is best-effort; a public production launch should add a shared quota store.
 
+## Accessibility
+
+Headroom targets WCAG 2.2 AA and is designed for people with ADHD first: one column per page, one clear next action, small time-boxed steps, plain language, and no decorative motion.
+
+Audit (22 Sep 2026, axe-core 4.x, WCAG 2.x A/AA + best-practice rules, all 10 routes including dialogs): **0 violations**. Manual checks passed: full keyboard operation, focus returns to the opening control after every dialog, skip link, per-page titles, 320 px reflow with no horizontal scroll, 200 % zoom, `prefers-reduced-motion`, and Windows High Contrast (`forced-colors`).
+
+What is implemented:
+
+- Semantic landmarks, per-route `document.title`, and a "Skip to content" link.
+- Native `<dialog>` modals labelled by their heading; focus moves in on open and back to the trigger on close; Escape closes.
+- Toggle and filter controls expose `aria-pressed`; the proposal chooser is a real radio group with arrow-key navigation; the Teams inbox uses `aria-expanded` and named confirm/remove actions.
+- Live regions for status; error messages persist until dismissed, success messages time out.
+- All text and status colours meet 4.5:1; status is never conveyed by colour alone; focus rings are 2 px ink.
+- Font sizes in `rem`, so browser text-size preferences apply; layout reflows to 320 px.
+- Decorative separators and icons are hidden from assistive technology.
+
 ## Calculation rules
 
 Task estimates use the average actual/estimated ratio of up to 10 recent category records when at least 3 exist. Otherwise the employee's latest 10 valid records are used, falling back to 1.0. Estimates are fixed when a task is activated; learning changes future estimates, not existing commitments.

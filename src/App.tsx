@@ -209,19 +209,28 @@ function Modal({
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  // The element that opened the dialog, captured once at creation.
+  const [opener] = useState(
+    () => document.activeElement as HTMLElement | null,
+  );
   useEffect(() => {
     ref.current?.showModal();
-  }, []);
+    // Restore focus after the dialog node is gone; removing an open modal
+    // otherwise resets focus to <body>.
+    return () => {
+      setTimeout(() => opener?.focus?.(), 0);
+    };
+  }, [opener]);
   return (
     <dialog
       className="modal"
       ref={ref}
       onCancel={onClose}
       onClose={onClose}
-      aria-label={title}
+      aria-labelledby="modal-title"
     >
       <div className="modal-head">
-        <h2>{title}</h2>
+        <h2 id="modal-title">{title}</h2>
         <button
           className="icon-btn"
           onClick={onClose}
@@ -305,6 +314,28 @@ export default function App() {
     };
   }, []);
   useEffect(() => {
+    const path = location.pathname;
+    const page =
+      path === "/sign-in"
+        ? "Sign in"
+        : path.includes("/capacity")
+          ? "My capacity"
+          : path.includes("/tasks/")
+            ? "Task"
+            : path.includes("/tasks")
+              ? "My tasks"
+              : path.includes("/negotiations/")
+                ? "Workload request"
+                : path.includes("/negotiations")
+                  ? "Workload requests"
+                  : path.includes("/employees/")
+                    ? "Team member"
+                    : path.startsWith("/manager")
+                      ? "Team overview"
+                      : "My overview";
+    document.title = `${page} · Headroom`;
+  }, [location.pathname]);
+  useEffect(() => {
     if (session && location.pathname === "/sign-in")
       navigate("/employee/dashboard", { replace: true });
   }, [session, location.pathname]);
@@ -337,7 +368,7 @@ export default function App() {
     };
   }, [session?.user.id, query.data?.workspace.id, cache]);
   useEffect(() => {
-    if (!notice) return;
+    if (!notice || notice.tone === "error") return;
     const timer = setTimeout(() => setNotice(""), 9000);
     return () => clearTimeout(timer);
   }, [notice]);
@@ -477,6 +508,9 @@ export default function App() {
     );
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main">
+        Skip to content
+      </a>
       <aside className="sidebar">
         <Link className="brand" to={`/${role}/dashboard`}>
           <img className="brand-mark" src="/logo.svg" alt="" />
@@ -622,7 +656,7 @@ export default function App() {
             )}
           </div>
         </header>
-        <main>
+        <main id="main" tabIndex={-1}>
           {ready && session && query.isError ? (
             <div className="connection-error">
               <h1>Unable to connect to your workspace</h1>
@@ -1099,7 +1133,11 @@ function Dashboard({
       <section className="section">
         <div className="section-head">
           <h2>Due this week</h2>
-          <Link className="text-link" to="/employee/tasks">
+          <Link
+            className="text-link"
+            to="/employee/tasks"
+            aria-label="View all tasks"
+          >
             View all
           </Link>
         </div>
@@ -1185,7 +1223,7 @@ function TaskInbox({
     localStorage.setItem(DISMISSED_KEY, JSON.stringify(next));
   };
   return (
-    <div className="inbox" aria-label="Potential new tasks">
+    <section className="inbox" aria-label="Potential new tasks">
       {drafts.map((t) => {
         const m = TEAMS_MESSAGES[t.id] ?? {
           from: "Sarah Lee",
@@ -1244,7 +1282,7 @@ function TaskInbox({
           </section>
         );
       })}
-    </div>
+    </section>
   );
 }
 /** Simplified Microsoft Teams mark: purple tile with a T and two heads. */
@@ -1449,8 +1487,11 @@ function TaskRow({
           <strong>{task.title}</strong>
         </Link>
         <span>
-          {task.category} <span className="bullet">·</span> Due{" "}
-          {due(task.deadline, true)}
+          {task.category}{" "}
+          <span className="bullet" aria-hidden="true">
+            ·
+          </span>{" "}
+          Due {due(task.deadline, true)}
         </span>
         {risk(task, state) && (
           <small className="risk-text">{risk(task, state)}</small>
@@ -1561,7 +1602,7 @@ function TasksPage({
           ))
         ) : (
           <div className="empty">
-            <h3>No tasks match this filter</h3>
+            <h2>No tasks match this filter</h2>
             <p>Select another filter to view more tasks.</p>
           </div>
         )}
@@ -2014,11 +2055,15 @@ function ManagerDashboard({
                   <strong>{p.name}</strong>
                   <span>
                     {p.job_title}
-                    <span className="bullet">·</span>
+                    <span className="bullet" aria-hidden="true">
+                      ·
+                    </span>
                     {risks ? `${risks} tasks at risk` : "No tasks at risk"}
                     {requests > 0 && (
                       <>
-                        <span className="bullet">·</span>
+                        <span className="bullet" aria-hidden="true">
+                          ·
+                        </span>
                         {requests} request pending
                       </>
                     )}
@@ -2040,7 +2085,11 @@ function ManagerDashboard({
       <section className="section">
         <div className="section-head">
           <h2>Workload requests</h2>
-          <Link className="text-link" to="/manager/negotiations">
+          <Link
+            className="text-link"
+            to="/manager/negotiations"
+            aria-label="View all workload requests"
+          >
             View all
           </Link>
         </div>
@@ -2181,7 +2230,7 @@ function Requests({
           ))
         ) : (
           <div className="empty">
-            <h3>No workload requests</h3>
+            <h2>No workload requests</h2>
             <p>
               No {filter === "All" ? "" : filter.toLowerCase() + " "}requests.
               When workload exceeds capacity, use Resolve workload to submit
@@ -2300,11 +2349,25 @@ function Composer({
         className="proposal-options"
         role="radiogroup"
         aria-label="Workload adjustments"
+        onKeyDown={(e) => {
+          const step =
+            e.key === "ArrowDown" || e.key === "ArrowRight"
+              ? 1
+              : e.key === "ArrowUp" || e.key === "ArrowLeft"
+                ? -1
+                : 0;
+          if (!step) return;
+          e.preventDefault();
+          const next = (selected + step + options.length) % options.length;
+          setSelected(next);
+          (e.currentTarget.children[next] as HTMLElement | undefined)?.focus();
+        }}
       >
         {options.map((o, i) => (
           <button
             role="radio"
             aria-checked={selected === i}
+            tabIndex={selected === i ? 0 : -1}
             className={selected === i ? "selected" : ""}
             key={o.label}
             onClick={() => setSelected(i)}
