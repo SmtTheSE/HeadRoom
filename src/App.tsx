@@ -1036,12 +1036,8 @@ function SignInPage({
       </header>
       <main className="signin-main">
         <section className="signin-copy">
-          <h1>Room to focus, for every team.</h1>
-          <p className="signin-sub">
-            The AI-enabled workspace where teams plan by capacity. See what each
-            person can take on, break work into clear steps, and settle
-            adjustments with superiors before deadlines slip.
-          </p>
+          <h1>Make room for what matters</h1>
+          <p className="signin-sub">The AI workspace that plans by capacity</p>
           <div className="signin-card">
             <button className="btn provider" disabled={busy} onClick={onGoogle}>
               <span className="g-chip">
@@ -1066,10 +1062,6 @@ function SignInPage({
               your email or calendar.
             </p>
           </div>
-          <p className="signin-foot">
-            Available as an organization plan. Each member gets a workspace
-            sized to their capacity.
-          </p>
         </section>
         <aside className="signin-visual" aria-hidden="true">
           <div className="preview-card">
