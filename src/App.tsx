@@ -81,6 +81,11 @@ function describeProposal(state: AppState, p: Proposal) {
     to: person(state, p.employee_id!).name.split(" ")[0],
   };
 }
+/** "counter_proposed" → "Counter proposed" */
+function sentence(value: string) {
+  const text = value.replace(/_/g, " ");
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
 function proposalTitle(state: AppState, p: Proposal) {
   const d = describeProposal(state, p);
   return `${d.title} · ${d.change}: ${d.from} → ${d.to}`;
@@ -258,7 +263,7 @@ export default function App() {
       .catch(() => {
         if (mounted) {
           setNotice(
-            "We could not restore your sign-in. Please try again.",
+            "Sign-in could not be restored. Please try again.",
             "error",
           );
           setReady(true);
@@ -316,10 +321,7 @@ export default function App() {
       return false;
     }
     if (!query.data) {
-      setNotice(
-        "Your workspace is not ready yet. Please retry loading it.",
-        "error",
-      );
+      setNotice("The workspace is still loading. Please try again.", "error");
       return false;
     }
     setBusy(true);
@@ -333,11 +335,11 @@ export default function App() {
       if (op === "reset") localStorage.removeItem(DISMISSED_KEY);
       setNotice(
         op === "request"
-          ? "Your request is with Sarah."
+          ? "Request sent to Sarah Lee for review."
           : op === "approve" || op === "accept"
-            ? "Adjustment applied. Your shared workload is up to date."
+            ? "Adjustment applied. Workload updated."
             : op === "reset"
-              ? "Your demo is ready to present again."
+              ? "Demo workspace reset to its starting state."
               : "Changes saved.",
       );
       return true;
@@ -345,7 +347,7 @@ export default function App() {
       setNotice(
         error instanceof Error
           ? error.message
-          : "We could not save that. Try again.",
+          : "Changes could not be saved. Please try again.",
         "error",
       );
       void query.refetch();
@@ -360,10 +362,7 @@ export default function App() {
       return false;
     }
     if (!query.data) {
-      setNotice(
-        "Your workspace is not ready yet. Please retry loading it.",
-        "error",
-      );
+      setNotice("The workspace is still loading. Please try again.", "error");
       return false;
     }
     setBusy(true);
@@ -378,14 +377,14 @@ export default function App() {
       setNotice(
         source === "ai"
           ? `AI breakdown added ${steps.length} steps to ${task.title}.`
-          : `Added ${steps.length} suggested steps to ${task.title}. Deploy the breakdown function for AI-generated steps.`,
+          : `${steps.length} suggested steps added to ${task.title}. Deploy the breakdown function to enable AI-generated steps.`,
       );
       return true;
     } catch (error) {
       setNotice(
         error instanceof Error
           ? error.message
-          : "We could not break that task down.",
+          : "The task could not be broken down. Please try again.",
         "error",
       );
       void query.refetch();
@@ -523,8 +522,8 @@ export default function App() {
         <header className="topbar">
           <span className="topbar-status">
             {session
-              ? "Private demo workspace"
-              : "Sample workspace · sign in to save changes"}
+              ? "Demo workspace"
+              : "Sample workspace · Sign in to save changes"}
           </span>
           <div className="top-actions">
             <Segmented
@@ -556,10 +555,10 @@ export default function App() {
         <main>
           {ready && session && query.isError ? (
             <div className="connection-error">
-              <h1>Let’s connect your workspace</h1>
+              <h1>Unable to connect to your workspace</h1>
               <p>
                 {query.error.message.includes("headroom_state")
-                  ? "The Headroom database setup is not installed yet. Run the supplied SQL setup in your Supabase project, then retry."
+                  ? "The Headroom database schema is not installed. Run the SQL setup in your Supabase project, then retry."
                   : query.error.message}
               </p>
               <button className="btn primary" onClick={() => query.refetch()}>
@@ -569,7 +568,7 @@ export default function App() {
           ) : !ready || (session && query.isPending) ? (
             <div className="loading">
               <LoaderCircle className="spin" />
-              <p>Making room for your work…</p>
+              <p>Loading your workspace…</p>
             </div>
           ) : (
             <Routes>
@@ -660,18 +659,20 @@ export default function App() {
       </div>
       {toast}
       {resetOpen && (
-        <Modal title="Start a fresh demo?" onClose={() => setResetOpen(false)}>
+        <Modal
+          title="Reset demo workspace?"
+          onClose={() => setResetOpen(false)}
+        >
           <p className="muted">
-            This resets your sample tasks, time entries, and requests to Alex’s
-            starting workload of 28 / 30h. It only affects your synthetic
-            workspace.
+            This restores the sample tasks, time entries, and requests to the
+            starting workload of 28 / 30h. Only your demo workspace is affected.
           </p>
           <div className="modal-actions">
             <button
               className="btn secondary"
               onClick={() => setResetOpen(false)}
             >
-              Keep my changes
+              Cancel
             </button>
             <button
               className="btn primary"
@@ -722,9 +723,10 @@ function SignInPage({
       </header>
       <main className="signin-main">
         <section className="signin-copy">
-          <h1>A little room to do your best work.</h1>
+          <h1>Sign in to Headroom</h1>
           <p className="signin-sub">
-            Understand your workload and agree on a realistic week, together.
+            Plan realistic workloads and resolve capacity conflicts with your
+            manager.
           </p>
           <div className="signin-card">
             <button className="btn provider" disabled={busy} onClick={onGoogle}>
@@ -741,17 +743,17 @@ function SignInPage({
               <span>or</span>
             </div>
             <Link className="btn secondary full" to="/employee/dashboard">
-              Explore the sample workspace
+              Continue with sample workspace
               <ArrowRight size={16} />
             </Link>
             <p className="fine-print">
-              By continuing, you get a private demo workspace with synthetic
-              data. Google is used for sign-in only — no access to your email or
-              calendar.
+              Signing in creates a private demo workspace with sample data.
+              Google is used for authentication only; Headroom does not access
+              your email or calendar.
             </p>
           </div>
           <p className="signin-foot">
-            Capacity is a planning tool, not a measure of your value.
+            Capacity is a planning measure, not a performance rating.
           </p>
         </section>
         <aside className="signin-visual" aria-hidden="true">
@@ -763,8 +765,8 @@ function SignInPage({
             </div>
             <Progress load={load} capacity={p.capacity} dark />
             <p className="capacity-note">
-              <strong>{hours(p.capacity - load)}h of breathing room.</strong>{" "}
-              Meetings, breaks, and life need space too.
+              <strong>{hours(p.capacity - load)}h available.</strong> Reserved
+              time covers meetings, administration, and breaks.
             </p>
           </div>
           <div className="preview-list">
@@ -889,12 +891,12 @@ function CapacityCard({
         <p className="capacity-note">
           <strong>
             {over
-              ? `${hours(load - p.capacity)}h over your recommended capacity.`
-              : `${hours(p.capacity - load)}h of breathing room.`}
+              ? `${hours(load - p.capacity)}h over capacity.`
+              : `${hours(p.capacity - load)}h available.`}
           </strong>{" "}
           {over
-            ? "A small adjustment can make the week work."
-            : "Meetings, breaks, and life need space too."}
+            ? "Review adjustment options to bring this week within capacity."
+            : "Reserved time covers meetings, administration, and breaks."}
         </p>
       </div>
       {!onCapacityPage && (
@@ -945,7 +947,7 @@ function Dashboard({
     <>
       <PageHeading
         eyebrow={`${longDate.format(now)} · ${clock.format(now)} · ${userName}`}
-        title={focus[0]?.title ?? "You’re all caught up."}
+        title={focus[0]?.title ?? "No open focus items"}
         subtitle={
           focus[0] ? (
             <span className="current-task">
@@ -955,7 +957,7 @@ function Dashboard({
               </strong>
             </span>
           ) : (
-            "No focus steps left for today."
+            "All focus steps for today are complete."
           )
         }
       />
@@ -963,8 +965,10 @@ function Dashboard({
       {resolved && (
         <div className="banner success">
           <div>
-            <strong>Conflict resolved. You have room to focus.</strong>
-            <span>The agreed adjustment is reflected in your workload.</span>
+            <strong>Capacity conflict resolved.</strong>
+            <span>
+              The approved adjustment has been applied to your workload.
+            </span>
           </div>
           <Link to="/employee/negotiations">
             View agreement <ArrowRight size={16} />
@@ -974,10 +978,10 @@ function Dashboard({
       {load > 30 && (
         <div className="banner conflict">
           <div>
-            <strong>Your week needs a little more room.</strong>
+            <strong>This week exceeds your capacity.</strong>
             <span>
-              You’re {hours(load - 30)}h above capacity. Let’s find an
-              adjustment together.
+              Workload is {hours(load - 30)}h over capacity. Review adjustment
+              options with your manager.
             </span>
           </div>
           {open ? (
@@ -998,7 +1002,7 @@ function Dashboard({
       <section className="section">
         <div className="section-head">
           <h2>Today’s focus</h2>
-          <span className="muted">{focus.length} small steps</span>
+          <span className="muted">{focus.length} steps</span>
         </div>
         <div className="focus-list">
           {focus.length ? (
@@ -1028,15 +1032,15 @@ function Dashboard({
             ))
           ) : (
             <div className="empty">
-              <p>All your focus steps are complete.</p>
-              <Link to="/employee/tasks">See your tasks</Link>
+              <p>All focus steps are complete.</p>
+              <Link to="/employee/tasks">View tasks</Link>
             </div>
           )}
         </div>
       </section>
       <section className="section">
         <div className="section-head">
-          <h2>Coming up this week</h2>
+          <h2>Due this week</h2>
           <Link className="text-link" to="/employee/tasks">
             View all
           </Link>
@@ -1047,7 +1051,7 @@ function Dashboard({
               <tr>
                 <th>Task</th>
                 <th>Due</th>
-                <th>Your estimate</th>
+                <th>Estimate</th>
               </tr>
             </thead>
             <tbody>
@@ -1083,7 +1087,7 @@ const TEAMS_MESSAGES: Record<
   "new-research": {
     from: "Sarah Lee",
     channel: "Design team",
-    text: "Hi Alex, could you put together a competitor research summary for the client pitch? Focus on the three main competitors’ pricing pages and onboarding flows, and pull a few screenshots we can drop into the deck. Thursday morning would be ideal so we have time to review before the call. Thanks!",
+    text: "Hi Alex, please prepare a competitor research summary for the client pitch. Cover the three main competitors’ pricing pages and onboarding flows, and include screenshots we can use in the deck. Please have it ready by Thursday morning so it can be reviewed before the call. Thank you.",
   },
 };
 const DISMISSED_KEY = "headroom.dismissed";
@@ -1150,8 +1154,9 @@ function TaskInbox({
               </button>
               {expanded && (
                 <p className="inbox-detail" id={`inbox-${t.id}`}>
-                  Would add <b>{t.title}</b> · {hours(t.personalized_hours)}h
-                  personalized estimate · due {due(t.deadline, true)}
+                  Confirming adds <b>{t.title}</b> ·{" "}
+                  {hours(t.personalized_hours)}h estimate · due{" "}
+                  {due(t.deadline, true)}
                 </p>
               )}
             </div>
@@ -1315,7 +1320,7 @@ function TasksPage({
     <>
       <PageHeading
         title="My tasks"
-        subtitle="Confirmed work with estimates personalized to your pace."
+        subtitle="Assigned work with personalized time estimates."
       />
       <Segmented
         label="Filter tasks"
@@ -1336,8 +1341,8 @@ function TasksPage({
           ))
         ) : (
           <div className="empty">
-            <h3>Nothing here right now.</h3>
-            <p>Try another filter to see the rest of your work.</p>
+            <h3>No tasks match this filter</h3>
+            <p>Select another filter to view more tasks.</p>
           </div>
         )}
       </div>
@@ -1372,7 +1377,7 @@ function TaskDetail({
     <>
       <Link className="back-link" to="/employee/tasks">
         <ArrowLeft size={16} />
-        Back to my tasks
+        Back to tasks
       </Link>
       <PageHeading
         eyebrow={task.category}
@@ -1398,10 +1403,10 @@ function TaskDetail({
         </div>
         <div>
           <dt>Status</dt>
-          <dd className="capitalize">{task.status.replace("_", " ")}</dd>
+          <dd>{sentence(task.status)}</dd>
         </div>
         <div>
-          <dt>Your estimate</dt>
+          <dt>Estimate</dt>
           <dd>
             {hours(task.personalized_hours)}h
             <small>
@@ -1413,7 +1418,7 @@ function TaskDetail({
       </dl>
       <section className="section">
         <div className="section-head">
-          <h2>Your next steps</h2>
+          <h2>Steps</h2>
           {subs.length ? (
             <span className="muted">
               {subs.filter((s) => s.completed).length} / {subs.length} complete
@@ -1446,8 +1451,8 @@ function TaskDetail({
             ))
           ) : (
             <p className="muted">
-              No steps yet. Use AI breakdown to split this task into smaller
-              steps, or record your time below when you’re ready.
+              No steps defined. Use AI breakdown to generate steps, or log time
+              below.
             </p>
           )}
         </div>
@@ -1465,10 +1470,10 @@ function TaskDetail({
         )}
       </section>
       <section className="section">
-        <h2>Time spent</h2>
+        <h2>Time logged</h2>
         <p className="muted">
-          Actual time helps personalize estimates for future tasks. Your
-          estimate stays fixed while the task is active.
+          Logged time refines estimates for future tasks. The current estimate
+          is fixed while the task is active.
         </p>
         <div className="hours-form">
           <label>
@@ -1488,7 +1493,7 @@ function TaskDetail({
             disabled={busy || disabled || actual === ""}
             onClick={() => run("hours", { id, actual_hours: Number(actual) })}
           >
-            Save time
+            Log hours
           </button>
           <button
             className="btn primary"
@@ -1507,19 +1512,19 @@ function TaskDetail({
       </section>
       {completeOpen && (
         <Modal
-          title="Mark this task complete?"
+          title="Complete this task?"
           onClose={() => setCompleteOpen(false)}
         >
           <p className="muted">
-            Save {actual} actual hours and mark all remaining steps complete.
-            This will update the estimates used for future tasks.
+            This logs {actual} hours, marks all remaining steps complete, and
+            updates the estimates used for future tasks.
           </p>
           <div className="modal-actions">
             <button
               className="btn secondary"
               onClick={() => setCompleteOpen(false)}
             >
-              Keep working
+              Cancel
             </button>
             <button
               className="btn primary"
@@ -1609,12 +1614,12 @@ function CapacityPage({
     <>
       <PageHeading
         title="My capacity"
-        subtitle="A planning tool, not a measure of your value."
+        subtitle="Weekly planning capacity and personalized estimates."
       />
       <CapacityCard state={state} />
       <section className="section">
         <div className="section-head">
-          <h2>Where your capacity goes</h2>
+          <h2>Workload breakdown</h2>
           <Segmented
             label="Week"
             options={["This week", "Next week"] as const}
@@ -1624,17 +1629,17 @@ function CapacityPage({
         </div>
         <Breakdown state={state} next={next} />
         <p className="caption">
-          Active work due {next ? "next" : "this"} week, plus overdue carryover
-          for this week. Full estimates stay counted until tasks are completed;
-          logged time does not subtract from this planning total.
+          Includes active tasks due {next ? "next" : "this"} week and overdue
+          carryover. Full estimates count until a task is completed; logged time
+          does not reduce the planning total.
         </p>
       </section>
       <section className="section">
-        <h2>Why 30 hours?</h2>
+        <h2>Focus capacity</h2>
         <p className="muted">
-          In a 40-hour week, we leave 10 hours for meetings, admin,
-          communication, and breaks. This is a configured starting point for the
-          demo, not a clinical assessment.
+          Of a 40-hour week, 10 hours are reserved for meetings, administration,
+          communication, and breaks. This is a configured planning value for the
+          demo.
         </p>
         <div className="week-split">
           <span>30h focus</span>
@@ -1648,8 +1653,8 @@ function CapacityPage({
       </section>
       <section className="section">
         <div className="section-head">
-          <h2>Learning your rhythm</h2>
-          <span className="muted">From your completed work</span>
+          <h2>Estimate calibration</h2>
+          <span className="muted">Based on completed work</span>
         </div>
         <div className="table-wrap">
           <table className="learning-table">
@@ -1657,7 +1662,7 @@ function CapacityPage({
               <tr>
                 <th>Category</th>
                 <th>Original average</th>
-                <th>Your recent average</th>
+                <th>Recent average</th>
                 <th>Basis</th>
                 <th>Adjustment</th>
               </tr>
@@ -1691,9 +1696,9 @@ function CapacityPage({
           </table>
         </div>
         <p className="caption">
-          We average actual-to-estimated time ratios from up to 10 recent tasks.
-          Categories need 3 samples; otherwise your overall pattern is used. New
-          learning applies to future estimates.
+          Adjustment factors average actual-to-estimated time across up to 10
+          recent tasks. Categories with fewer than 3 samples use the overall
+          factor. Changes apply to future estimates.
         </p>
       </section>
     </>
@@ -1725,7 +1730,7 @@ function ManagerDashboard({
       <PageHeading
         eyebrow={`${longDate.format(now)} · ${clock.format(now)}`}
         title={`${greeting(now)}, ${userName}.`}
-        subtitle="See where the team has room, and where a conversation could help."
+        subtitle="Team capacity and open workload requests for this week."
       />
       <dl className="stats-row">
         <div>
@@ -1733,11 +1738,11 @@ function ManagerDashboard({
           <dt>Team members</dt>
         </div>
         <div>
-          <dd>{states.filter((s) => s === "Capacity Conflict").length}</dd>
+          <dd>{states.filter((s) => s === "Over capacity").length}</dd>
           <dt>Capacity conflicts</dt>
         </div>
         <div>
-          <dd>{states.filter((s) => s === "Near Capacity").length}</dd>
+          <dd>{states.filter((s) => s === "Near capacity").length}</dd>
           <dt>Near capacity</dt>
         </div>
         <div>
@@ -1747,8 +1752,8 @@ function ManagerDashboard({
       </dl>
       <section className="section">
         <div className="section-head">
-          <h2>Everyone’s week</h2>
-          <span className="muted">Sorted by capacity pressure</span>
+          <h2>Team capacity</h2>
+          <span className="muted">Sorted by utilization</span>
         </div>
         <div className="team-list">
           {employees.map((p) => {
@@ -1809,14 +1814,12 @@ function ManagerDashboard({
               <RequestRow key={n.id} n={n} role="manager" state={state} />
             ))
         ) : (
-          <p className="muted">
-            No requests yet. New conversations will appear here.
-          </p>
+          <p className="muted">No workload requests.</p>
         )}
       </section>
       <p className="privacy-note">
-        You see confirmed work, capacity, and shared requests. Personal notes
-        and health information are never part of this view.
+        This view includes assigned work, capacity, and shared requests only.
+        Personal notes and health information are not included.
       </p>
     </>
   );
@@ -1852,19 +1855,19 @@ function EmployeeDetail({ state }: { state: AppState }) {
       </dl>
       <section className="section">
         <div className="section-head">
-          <h2>Confirmed work this week</h2>
+          <h2>Assigned work this week</h2>
           <span className="muted">Personalized estimates</span>
         </div>
         <Breakdown state={state} employee={p.id} />
       </section>
       <section className="section">
-        <h2>Shared workload requests</h2>
+        <h2>Workload requests</h2>
         {requests.length ? (
           requests.map((n) => (
             <RequestRow key={n.id} n={n} role="manager" state={state} />
           ))
         ) : (
-          <p className="muted">No requests for this teammate.</p>
+          <p className="muted">No workload requests for this team member.</p>
         )}
       </section>
     </>
@@ -1888,7 +1891,7 @@ function RequestRow({
       <span
         className={`badge ${n.status === "approved" ? "good" : n.status === "declined" ? "neutral" : "warning"}`}
       >
-        {n.status.replace("_", " ")}
+        {sentence(n.status)}
       </span>
     </Link>
   );
@@ -1915,7 +1918,7 @@ function Requests({
     <>
       <PageHeading
         title="Workload requests"
-        subtitle="Discuss priorities and agree on a realistic plan together."
+        subtitle="Review and agree workload adjustments with your manager."
       >
         {role === "employee" &&
           workload(state.tasks) > 30 &&
@@ -1941,11 +1944,11 @@ function Requests({
           ))
         ) : (
           <div className="empty">
-            <h3>A little conversation can make room.</h3>
+            <h3>No workload requests</h3>
             <p>
-              No {filter === "All" ? "" : filter.toLowerCase() + " "}requests
-              yet. If your workload exceeds capacity, start from Resolve
-              Workload.
+              No {filter === "All" ? "" : filter.toLowerCase() + " "}requests.
+              When workload exceeds capacity, use Resolve workload to submit
+              one.
             </p>
           </div>
         )}
@@ -1971,7 +1974,7 @@ function ProposalImpact({
     <div className="proposal-impact">
       <div className="impact-numbers">
         <div>
-          <span>This week now</span>
+          <span>Current week</span>
           <strong>
             {hours(before)}
             <small> / 30h</small>
@@ -1979,7 +1982,7 @@ function ProposalImpact({
         </div>
         <ArrowRight size={24} />
         <div>
-          <span>With this adjustment</span>
+          <span>After adjustment</span>
           <strong>
             {hours(load)}
             <small> / 30h</small>
@@ -1988,7 +1991,7 @@ function ProposalImpact({
       </div>
       <Progress load={load} capacity={30} />
       <div className="impact-result">
-        <span>{hours(before - load)}h moved out of this week</span>
+        <span>{hours(before - load)}h removed from this week</span>
         <Badge load={load} capacity={30} />
       </div>
       {proposal.type === "deadline" && (
@@ -1999,10 +2002,10 @@ function ProposalImpact({
       )}
       {proposal.type === "scope" && (
         <p>
-          Omit the detailed competitor analysis section.{" "}
+          Removes the detailed competitor analysis section.{" "}
           {load > 30
-            ? `${hours(load - 30)}h would still be above capacity.`
-            : "The remaining workload fits."}
+            ? `${hours(load - 30)}h would remain over capacity.`
+            : "Remaining workload is within capacity."}
         </p>
       )}
       {other && (
@@ -2037,23 +2040,24 @@ function Composer({
     if (proposal)
       setMessage(
         mode === "counter"
-          ? `Thanks for raising this. Could we ${proposal.label.charAt(0).toLowerCase() + proposal.label.slice(1)} instead? Let's keep the work realistic.`
-          : `Based on my current workload, I'd like to ${proposal.label.charAt(0).toLowerCase() + proposal.label.slice(1)}. This would bring my active workload to ${hours(workload(applyPreview(state, proposal)))} / 30h. Would that adjustment work?`,
+          ? `Thank you for flagging this. I propose we ${proposal.label.charAt(0).toLowerCase() + proposal.label.slice(1)} instead so the plan remains realistic.`
+          : `Based on my current workload, I would like to ${proposal.label.charAt(0).toLowerCase() + proposal.label.slice(1)}. This would bring my active workload to ${hours(workload(applyPreview(state, proposal)))} / 30h. Please let me know if this adjustment works.`,
       );
   }, [selected, mode]);
   return (
     <Modal
       title={
         mode === "counter"
-          ? "Suggest another way forward"
+          ? "Propose an alternative adjustment"
           : mode === "revise"
-            ? "Suggest another adjustment"
-            : "Make a little room this week"
+            ? "Propose a revised adjustment"
+            : "Request a workload adjustment"
       }
       onClose={onClose}
     >
       <p className="muted">
-        Choose an adjustment to discuss. Tasks change only when you both agree.
+        Select an adjustment to propose. Tasks change only after both parties
+        agree.
       </p>
       <div
         className="proposal-options"
@@ -2078,7 +2082,7 @@ function Composer({
                 h less this week
                 {workload(applyPreview(state, o)) > 30
                   ? " · partial relief"
-                  : " · fits capacity"}
+                  : " · within capacity"}
               </small>
             </span>
             {i === 0 && <span className="recommended">Suggested</span>}
@@ -2089,7 +2093,7 @@ function Composer({
         <>
           <ProposalImpact state={state} proposal={proposal} />
           <label className="message-label">
-            Your message
+            Message
             <textarea
               maxLength={4000}
               rows={4}
@@ -2110,13 +2114,13 @@ function Composer({
               }}
             >
               {busy && <LoaderCircle className="spin" size={16} />}
-              {mode === "counter" ? "Send counter-proposal" : "Send to Sarah"}
+              {mode === "counter" ? "Send counter-proposal" : "Send request"}
             </button>
           </div>
         </>
       ) : (
         <p className="muted">
-          No automatic adjustments are available for the remaining tasks.
+          No adjustment options are available for the remaining tasks.
         </p>
       )}
     </Modal>
@@ -2150,10 +2154,10 @@ function RequestDetail({
       <PageHeading
         eyebrow="Alex Morgan ↔ Sarah Lee"
         title={proposalTitle(state, n.proposal)}
-        subtitle={`Revision ${n.revision} · ${n.status.replace("_", " ")}`}
+        subtitle={`Revision ${n.revision} · ${sentence(n.status)}`}
       />
       <section className="section">
-        <h2>The proposed adjustment</h2>
+        <h2>Proposed adjustment</h2>
         {open ? (
           <ProposalImpact state={state} proposal={n.proposal} />
         ) : (
@@ -2172,8 +2176,8 @@ function RequestDetail({
           <div className="warning-box">
             This task changed after the proposal was sent.{" "}
             {role === "manager"
-              ? "Send a fresh counter-proposal."
-              : "Cancel this request and propose a fresh adjustment, or revise the counter-proposal."}
+              ? "Submit a new counter-proposal."
+              : "Cancel this request and submit a new adjustment, or revise the counter-proposal."}
           </div>
         )}
         <div className="request-actions">
@@ -2217,7 +2221,7 @@ function RequestDetail({
                 disabled={busy}
                 onClick={() => compose("revise", n)}
               >
-                Suggest another change
+                Revise proposal
               </button>
             </>
           )}
@@ -2232,14 +2236,14 @@ function RequestDetail({
           )}
           {role === "employee" && n.status === "pending" && (
             <p className="muted">
-              Waiting for Sarah’s response. Your assignments stay unchanged
+              Awaiting response from Sarah Lee. Assignments remain unchanged
               until approval.
             </p>
           )}
         </div>
       </section>
       <section className="section">
-        <h2>The conversation</h2>
+        <h2>Discussion</h2>
         <div className="timeline">
           {state.messages
             .filter((m) => m.negotiation_id === id)
@@ -2265,7 +2269,7 @@ function RequestDetail({
 function NotFound() {
   return (
     <div className="empty">
-      <h1>We couldn’t find that item.</h1>
+      <h1>Item not found</h1>
       <Link className="btn primary" to="/employee/dashboard">
         Back to overview
       </Link>

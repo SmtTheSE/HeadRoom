@@ -19,10 +19,10 @@ describe("capacity planning", () => {
     ).toBe(35);
   });
   it("uses exact thresholds", () => {
-    expect(status(21, 30).label).toBe("Busy");
-    expect(status(27, 30).label).toBe("Near Capacity");
-    expect(status(30, 30).label).toBe("Near Capacity");
-    expect(status(30.1, 30).label).toBe("Capacity Conflict");
+    expect(status(21, 30).label).toBe("On track");
+    expect(status(27, 30).label).toBe("Near capacity");
+    expect(status(30, 30).label).toBe("Near capacity");
+    expect(status(30.1, 30).label).toBe("Over capacity");
   });
   it("learns the research multiplier and uses an honest fallback", () => {
     expect(

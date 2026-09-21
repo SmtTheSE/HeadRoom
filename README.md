@@ -74,7 +74,7 @@ Task estimates use the average actual/estimated ratio of up to 10 recent categor
 
 Weekly workload sums full personalized estimates of active tasks due that week plus overdue carryover. Logging hours or completing one subtask does not subtract hours. Completing the whole task removes its estimate. This is due-date-bucket planning, not an hour-by-hour schedule or a remaining-effort forecast.
 
-Capacity is configured, not clinically inferred. Comfortable <70%; Busy 70–<90%; Near Capacity 90–100%; Capacity Conflict >100%. Scope reductions can offer partial relief without resolving the conflict. Reassignment uses the recipient's own estimate multiplier and checks capacity.
+Capacity is configured, not clinically inferred. Available <70%; On track 70–<90%; Near capacity 90–100%; Over capacity >100%. Scope reductions can offer partial relief without resolving the conflict. Reassignment uses the recipient's own estimate multiplier and checks capacity.
 
 ## Verification
 

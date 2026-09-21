@@ -21,12 +21,12 @@ export function workload(tasks: Task[], employee = "alex", next = false) {
 export function status(load: number, capacity: number) {
   const ratio = load / capacity;
   return ratio > 1
-    ? { label: "Capacity Conflict", tone: "danger" }
+    ? { label: "Over capacity", tone: "danger" }
     : ratio >= 0.9
-      ? { label: "Near Capacity", tone: "warning" }
+      ? { label: "Near capacity", tone: "warning" }
       : ratio >= 0.7
-        ? { label: "Busy", tone: "blue" }
-        : { label: "Comfortable", tone: "good" };
+        ? { label: "On track", tone: "blue" }
+        : { label: "Available", tone: "good" };
 }
 export function multiplier(
   history: History[],

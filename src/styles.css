@@ -144,9 +144,6 @@ strong {
   font-size: 13px;
   color: var(--muted);
 }
-.capitalize {
-  text-transform: capitalize;
-}
 .bullet {
   margin: 0 5px;
   opacity: 0.5;
@@ -795,7 +792,6 @@ textarea:focus-visible {
   font-weight: 600;
   line-height: 1.5;
   white-space: nowrap;
-  text-transform: capitalize;
 }
 .badge.good {
   background: var(--green-bg);
