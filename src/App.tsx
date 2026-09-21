@@ -1038,9 +1038,9 @@ function SignInPage({
         <section className="signin-copy">
           <h1>Room to focus, for every team.</h1>
           <p className="signin-sub">
-            A calm, AI-enabled workspace that works alongside Microsoft Teams.
-            Every person sees their capacity clearly, works one step at a time,
-            and agrees adjustments with their manager in the open.
+            The AI-enabled workspace where teams plan by capacity. See what each
+            person can take on, break work into clear steps, and settle
+            adjustments with managers before deadlines slip.
           </p>
           <div className="signin-card">
             <button className="btn provider" disabled={busy} onClick={onGoogle}>
