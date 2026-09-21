@@ -404,7 +404,7 @@ export default function App() {
       );
       cache.setQueryData(["workspace", session.user.id], updated);
       setAi({ taskId: task.id, phase: "done" });
-      setTimeout(() => setAi(null), 3000);
+      setTimeout(() => setAi(null), 8000);
       setNotice(
         source === "mock"
           ? `Demo breakdown added ${steps.length} steps to ${task.title}. LLM API is off.`
@@ -1274,19 +1274,33 @@ function TeamsMark() {
     </svg>
   );
 }
-/* Claude-style "working" indicator: a pulsing orb, a shimmering status line that
-   moves through the phases of the job, and skeleton rows where steps will appear. */
+/* AI working experience. While the model runs: an aurora border, an orb with
+   orbiting satellites, a reasoning-trace list of phases that tick off, an
+   indeterminate progress sweep, and skeleton rows. When steps arrive they are
+   typed out one after another with a live caret. */
+const reducedMotion = () =>
+  typeof window !== "undefined" &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const AI_PHASES = (h: number) => [
-  "Reading the task",
-  `Sizing steps to ${hours(h)}h`,
-  "Drafting steps",
-  "Checking the plan",
+  "Reading the task and its context",
+  `Sizing the work to ${hours(h)}h`,
+  "Drafting sequential steps",
+  "Checking the plan for gaps",
 ];
+function AiOrb({ small = false }: { small?: boolean }) {
+  return (
+    <span className={`ai-orb ${small ? "small" : ""}`} aria-hidden="true">
+      <span className="ai-orbit" />
+      <span className="ai-orbit second" />
+    </span>
+  );
+}
 function AiLabel() {
   return (
-    <span className="ai-shimmer" aria-live="polite">
-      Breaking down…
-    </span>
+    <>
+      <AiOrb small />
+      <span className="ai-shimmer">Breaking down…</span>
+    </>
   );
 }
 function AiWorking({ hours: h }: { hours: number }) {
@@ -1295,16 +1309,37 @@ function AiWorking({ hours: h }: { hours: number }) {
   useEffect(() => {
     const timer = setInterval(
       () => setI((n) => Math.min(n + 1, phases.length - 1)),
-      1500,
+      1600,
     );
     return () => clearInterval(timer);
   }, [phases.length]);
   return (
-    <div className="ai-working" role="status" aria-live="polite">
-      <div className="ai-status">
-        <span className="ai-orb" aria-hidden="true" />
-        <span className="ai-shimmer">{phases[i]}…</span>
+    <div className="ai-panel" role="status" aria-live="polite">
+      <div className="ai-bar" aria-hidden="true">
+        <span />
       </div>
+      <div className="ai-head">
+        <AiOrb />
+        <div>
+          <strong>AI breakdown in progress</strong>
+          <span>Gemini is turning this task into steps you can tick off.</span>
+        </div>
+      </div>
+      <ol className="ai-phases">
+        {phases.map((phase, n) => (
+          <li
+            key={phase}
+            className={n < i ? "done" : n === i ? "active" : "pending"}
+          >
+            <span className="ai-tick" aria-hidden="true" />
+            {n === i ? (
+              <span className="ai-shimmer">{phase}…</span>
+            ) : (
+              <span>{phase}</span>
+            )}
+          </li>
+        ))}
+      </ol>
       <ul className="ai-skeleton" aria-hidden="true">
         <li style={{ width: "62%" }} />
         <li style={{ width: "74%" }} />
@@ -1312,6 +1347,84 @@ function AiWorking({ hours: h }: { hours: number }) {
         <li style={{ width: "68%" }} />
       </ul>
     </div>
+  );
+}
+/** Types `text` character by character after `delay` ms; instant under reduced motion. */
+function TypedText({
+  text,
+  delay,
+  onDone,
+}: {
+  text: string;
+  delay: number;
+  onDone?: () => void;
+}) {
+  const [n, setN] = useState(() => (reducedMotion() ? text.length : 0));
+  useEffect(() => {
+    if (reducedMotion()) {
+      onDone?.();
+      return;
+    }
+    let count = 0;
+    let ticker: ReturnType<typeof setInterval> | undefined;
+    const start = setTimeout(() => {
+      ticker = setInterval(() => {
+        count += 1;
+        setN(count);
+        if (count >= text.length) {
+          clearInterval(ticker);
+          onDone?.();
+        }
+      }, 14);
+    }, delay);
+    return () => {
+      clearTimeout(start);
+      if (ticker) clearInterval(ticker);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text, delay]);
+  const typing = n < text.length;
+  return (
+    <>
+      {text.slice(0, n)}
+      {typing && <span className="ai-caret" aria-hidden="true" />}
+    </>
+  );
+}
+function RevealedStep({
+  step,
+  index,
+  busy,
+  disabled,
+  onToggle,
+}: {
+  step: { id: string; title: string; minutes: number; completed: boolean };
+  index: number;
+  busy: boolean;
+  disabled: boolean;
+  onToggle: () => void;
+}) {
+  const [typed, setTyped] = useState(reducedMotion);
+  return (
+    <label
+      className={`reveal ${typed ? "typed" : ""} ${step.completed ? "done" : ""}`}
+      style={{ "--i": index } as CSSProperties}
+    >
+      <input
+        type="checkbox"
+        checked={step.completed}
+        disabled={busy || disabled}
+        onChange={onToggle}
+      />
+      <span>
+        <TypedText
+          text={step.title}
+          delay={index * 520}
+          onDone={() => setTyped(true)}
+        />
+      </span>
+      <small>{step.minutes} min</small>
+    </label>
   );
 }
 function TaskRow({
@@ -1551,13 +1664,20 @@ function TaskDetail({
         <div className="subtask-list">
           {working ? (
             <AiWorking hours={task.personalized_hours} />
-          ) : subs.length ? (
+          ) : reveal ? (
             subs.map((s, i) => (
-              <label
+              <RevealedStep
                 key={s.id}
-                className={`${s.completed ? "done" : ""} ${reveal ? "reveal" : ""}`}
-                style={reveal ? ({ "--i": i } as CSSProperties) : undefined}
-              >
+                step={s}
+                index={i}
+                busy={busy}
+                disabled={disabled}
+                onToggle={() => run("subtask", { id: s.id })}
+              />
+            ))
+          ) : subs.length ? (
+            subs.map((s) => (
+              <label key={s.id} className={s.completed ? "done" : ""}>
                 <input
                   type="checkbox"
                   checked={s.completed}

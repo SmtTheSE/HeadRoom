@@ -1356,6 +1356,16 @@ td:last-child {
 }
 
 /* ---------- AI working state ---------- */
+@property --ai-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+@keyframes ai-rotate {
+  to {
+    --ai-angle: 360deg;
+  }
+}
 @keyframes ai-shimmer {
   from {
     background-position: 200% center;
@@ -1364,24 +1374,85 @@ td:last-child {
     background-position: -200% center;
   }
 }
-@keyframes ai-pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgb(95 139 74 / 0.45);
-  }
+@keyframes ai-breathe {
+  0%,
   100% {
-    box-shadow: 0 0 0 12px rgb(95 139 74 / 0);
+    transform: scale(1);
+    box-shadow: 0 0 14px rgb(95 139 74 / 0.35);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 26px rgb(95 139 74 / 0.55);
+  }
+}
+@keyframes ai-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes ai-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px rgb(95 139 74 / 0.06), 0 14px 40px rgb(95 139 74 / 0.1);
+  }
+  50% {
+    box-shadow: 0 0 0 1px rgb(95 139 74 / 0.1), 0 18px 56px rgb(95 139 74 / 0.2);
+  }
+}
+@keyframes ai-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(350%);
+  }
+}
+@keyframes ai-wave {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
   }
 }
 @keyframes ai-step-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(8px);
+    filter: blur(3px);
   }
   to {
     opacity: 1;
     transform: none;
+    filter: blur(0);
   }
 }
+@keyframes ai-highlight {
+  from {
+    background-color: var(--green-bg);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+@keyframes ai-caret {
+  50% {
+    opacity: 0;
+  }
+}
+@keyframes ai-tick-in {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* shimmering status text */
 .ai-shimmer {
   background: linear-gradient(
     90deg,
@@ -1400,45 +1471,244 @@ td:last-child {
 .btn.is-working {
   cursor: progress;
   opacity: 1;
+  border-color: var(--green-bar);
 }
-.ai-working {
-  padding: 14px 0 6px;
+
+/* the orb: breathing sphere with two orbiting satellites */
+.ai-orb {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, #f2fbdc 0%, #a9c887 35%, var(--green-bar) 70%, #2f5d3a 100%);
+  animation: ai-breathe 2.2s ease-in-out infinite;
 }
-.ai-status {
+.ai-orb.small {
+  width: 16px;
+  height: 16px;
+  margin-right: 2px;
+}
+.ai-orbit {
+  position: absolute;
+  inset: -7px;
+  border-radius: 50%;
+  animation: ai-spin 2.6s linear infinite;
+}
+.ai-orbit::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  margin-left: -3px;
+  border-radius: 50%;
+  background: var(--brand-lime);
+  box-shadow: 0 0 8px var(--brand-lime);
+}
+.ai-orbit.second {
+  inset: -12px;
+  animation-duration: 4.2s;
+  animation-direction: reverse;
+}
+.ai-orbit.second::before {
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  background: #7fb3c9;
+  box-shadow: 0 0 6px #7fb3c9;
+}
+.ai-orb.small .ai-orbit {
+  inset: -4px;
+}
+.ai-orb.small .ai-orbit.second {
+  inset: -7px;
+}
+.ai-orb.small .ai-orbit::before {
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+}
+.ai-orb.small .ai-orbit.second::before {
+  width: 3px;
+  height: 3px;
+  margin-left: -1.5px;
+}
+
+/* the panel: rotating aurora border + breathing ambient glow */
+.ai-panel {
+  position: relative;
+  margin-top: 16px;
+  padding: 22px 24px 8px;
+  border-radius: 16px;
+  background: var(--surface);
+  overflow: hidden;
+  isolation: isolate;
+  animation: ai-glow 3s ease-in-out infinite;
+}
+.ai-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  padding: 1.5px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--ai-angle),
+    var(--green-bar),
+    var(--brand-lime),
+    #7fb3c9,
+    var(--paper),
+    var(--green-bar)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: ai-rotate 3.2s linear infinite;
+}
+.ai-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--line);
+  overflow: hidden;
+}
+.ai-bar span {
+  display: block;
+  width: 30%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, var(--green-bar), var(--brand-lime), transparent);
+  animation: ai-sweep 1.4s ease-in-out infinite;
+}
+.ai-head {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 14px;
-  font-weight: 500;
+  gap: 18px;
 }
-.ai-orb {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--green-bar);
-  animation: ai-pulse 1.6s ease-out infinite;
+.ai-head strong {
+  display: block;
+  font-size: 15px;
+  color: var(--ink);
 }
-.ai-skeleton {
+.ai-head span {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* reasoning trace */
+.ai-phases {
   margin: 18px 0 0;
   padding: 0;
   list-style: none;
 }
-.ai-skeleton li {
-  height: 14px;
-  margin: 0 0 22px 30px;
-  border-radius: 6px;
-  background: linear-gradient(
-    90deg,
-    var(--line) 25%,
-    var(--oat) 50%,
-    var(--line) 75%
-  );
-  background-size: 200% 100%;
-  animation: ai-shimmer 1.4s linear infinite;
+.ai-phases li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  font-size: 14px;
+  transition: opacity 0.3s;
 }
+.ai-phases li.pending {
+  opacity: 0.45;
+  color: var(--muted);
+}
+.ai-phases li.done {
+  color: var(--muted);
+}
+.ai-tick {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 50%;
+}
+.ai-phases li.active .ai-tick {
+  border-color: var(--green-bar);
+  border-top-color: transparent;
+  animation: ai-spin 0.9s linear infinite;
+}
+.ai-phases li.done .ai-tick {
+  border-color: var(--green-bar);
+  background: var(--green-bar);
+  animation: ai-tick-in 0.3s ease both;
+}
+.ai-phases li.done .ai-tick::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* skeleton rows with a travelling wave */
+.ai-skeleton {
+  margin: 14px 0 0;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--line);
+  list-style: none;
+}
+.ai-skeleton li {
+  height: 13px;
+  margin: 12px 0 14px 28px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--line) 25%, var(--oat) 50%, var(--line) 75%);
+  background-size: 200% 100%;
+  animation:
+    ai-shimmer 1.4s linear infinite,
+    ai-wave 1.4s ease-in-out infinite;
+}
+.ai-skeleton li:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.ai-skeleton li:nth-child(3) {
+  animation-delay: 0.3s;
+}
+.ai-skeleton li:nth-child(4) {
+  animation-delay: 0.45s;
+}
+
+/* typed reveal of generated steps */
 .subtask-list label.reveal {
-  animation: ai-step-in 0.45s ease both;
-  animation-delay: calc(var(--i) * 110ms);
+  margin: 0 -10px;
+  padding-inline: 10px;
+  border-radius: 8px;
+  animation:
+    ai-step-in 0.5s ease both,
+    ai-highlight 1.6s ease both;
+  animation-delay: calc(var(--i) * 520ms);
+}
+.subtask-list label.reveal small {
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+.subtask-list label.reveal.typed small {
+  opacity: 1;
+}
+.ai-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -0.15em;
+  background: var(--green-bar);
+  animation: ai-caret 0.8s steps(1) infinite;
 }
 
 /* ---------- states ---------- */
