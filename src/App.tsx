@@ -233,6 +233,22 @@ export default function App() {
       tone: "success" | "error";
     } | null>(null),
     [resetOpen, setResetOpen] = useState(false);
+  const [llmApiEnabled, setLlmApiEnabled] = useState(() => {
+    try {
+      return localStorage.getItem("headroom.llm-api") === "on";
+    } catch {
+      return false;
+    }
+  });
+  function toggleLlmApi() {
+    const next = !llmApiEnabled;
+    setLlmApiEnabled(next);
+    try {
+      localStorage.setItem("headroom.llm-api", next ? "on" : "off");
+    } catch {
+      /* Keep the preference for this session. */
+    }
+  }
   const [compose, setCompose] = useState<{
     mode: "request" | "counter" | "revise";
     request?: Negotiation;
@@ -367,7 +383,11 @@ export default function App() {
     }
     setBusy(true);
     try {
-      const { steps, model } = await generateSteps(task, query.data.workspace.version);
+      const { steps, model, source } = await generateSteps(
+        task,
+        query.data.workspace.version,
+        llmApiEnabled,
+      );
       const updated = await saveBreakdown(
         task.id,
         steps,
@@ -375,7 +395,9 @@ export default function App() {
       );
       cache.setQueryData(["workspace", session.user.id], updated);
       setNotice(
-        `Gemini generated ${steps.length} steps for ${task.title}. Model: ${model}.`,
+        source === "mock"
+          ? `Demo breakdown added ${steps.length} steps to ${task.title}. LLM API is off.`
+          : `Gemini generated ${steps.length} steps for ${task.title}. Model: ${model}.`,
       );
       return true;
     } catch (error) {
@@ -471,31 +493,62 @@ export default function App() {
           </NavLink>
         </nav>
         <div className="sidebar-bottom">
+          <div id="profile-settings" popover="auto" className="profile-popover">
+            <div className="llm-setting">
+              <div>
+                <div className="setting-title" id="llm-api-label">
+                  AI task breakdown
+                </div>
+
+                <div className="setting-subtitle">
+                  {llmApiEnabled
+                    ? "Use Gemini to generate task steps."
+                    : "Use local demonstration steps."}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                role="switch"
+                aria-checked={llmApiEnabled}
+                aria-labelledby="llm-api-label"
+                className={`llm-switch ${llmApiEnabled ? "is-on" : ""}`}
+                onClick={toggleLlmApi}
+                disabled={busy}
+              >
+                <span>{llmApiEnabled ? "On" : "Off"}</span>
+                <i aria-hidden="true" />
+              </button>
+            </div>
+          </div>
           {session ? (
             <div className="profile-mini">
-              <Avatar
-                name={
-                  session.user.user_metadata.full_name ??
-                  session.user.user_metadata.name ??
-                  session.user.email ??
-                  "?"
-                }
-                src={
-                  session.user.user_metadata.avatar_url ??
-                  session.user.user_metadata.picture
-                }
-              />
-              <div>
-                <strong>
-                  {session.user.user_metadata.full_name ??
+              <button
+                className="profile-trigger"
+                popoverTarget="profile-settings"
+                aria-label="Open profile settings"
+              >
+                <Avatar
+                  name={
+                    session.user.user_metadata.full_name ??
                     session.user.user_metadata.name ??
-                    session.user.email}
-                </strong>
-                <small>{session.user.email}</small>
-                <small>
-                  Viewing as {p.name} · {p.job_title}
-                </small>
-              </div>
+                    session.user.email ??
+                    "?"
+                  }
+                  src={
+                    session.user.user_metadata.avatar_url ??
+                    session.user.user_metadata.picture
+                  }
+                />
+                <span className="profile-copy">
+                  <strong>
+                    {session.user.user_metadata.full_name ??
+                      session.user.user_metadata.name ??
+                      session.user.email}
+                  </strong>
+                  <small>{p.job_title}</small>
+                </span>
+              </button>
               <button
                 className="icon-btn"
                 onClick={signOut}
@@ -507,11 +560,17 @@ export default function App() {
             </div>
           ) : (
             <div className="profile-mini">
-              <Avatar name={p.name} />
-              <div>
-                <strong>{p.name}</strong>
-                <small>{p.job_title} · sample</small>
-              </div>
+              <button
+                className="profile-trigger"
+                popoverTarget="profile-settings"
+                aria-label="Open profile settings"
+              >
+                <Avatar name={p.name} />
+                <span className="profile-copy">
+                  <strong>{p.name}</strong>
+                  <small>{p.job_title} · sample</small>
+                </span>
+              </button>
             </div>
           )}
         </div>

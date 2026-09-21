@@ -34,7 +34,7 @@
   --radius: 14px;
   --radius-sm: 8px;
   --shadow: 0 1px 2px rgb(31 30 28 / 0.04), 0 8px 24px rgb(31 30 28 / 0.06);
-  --sidebar-w: 240px;
+  --sidebar-w: 280px;
 
   font-family: var(--font-sans);
   font-size: 15px;
@@ -292,6 +292,45 @@ img.avatar {
   display: block;
   font-size: 13px;
   color: var(--muted);
+}
+.profile-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  flex: 1;
+  min-width: 0;
+
+  margin: 0;
+  padding: 0;
+
+  border: 0;
+  background: transparent;
+
+  color: inherit;
+  font: inherit;
+  text-align: left;
+
+  cursor: pointer;
+}
+
+.profile-trigger:hover .profile-copy strong {
+  color: var(--link);
+}
+
+.profile-trigger:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.profile-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-trigger .avatar {
+  flex-shrink: 0;
 }
 .avatar {
   display: inline-flex;
@@ -716,7 +755,9 @@ textarea:focus-visible {
   border: 1px solid var(--line-strong);
   border-radius: 50%;
   background: var(--surface);
-  transition: background-color 0.15s, border-color 0.15s;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
 }
 .inbox-yes {
   color: var(--green-text);
@@ -916,7 +957,6 @@ textarea:focus-visible {
   padding-top: 14px;
   border-top: 1px solid var(--line);
 }
-
 
 .table-wrap {
   overflow-x: auto;
@@ -1775,6 +1815,153 @@ td:last-child {
   color: var(--amber-text);
   font-size: 13px;
 }
+.profile-popover {
+  position: fixed;
+
+  top: auto;
+  right: auto;
+
+  left: 16px;
+  bottom: 94px;
+
+  width: calc(var(--sidebar-w) - 32px);
+
+  margin: 0;
+  padding: 16px;
+
+  overflow: visible;
+
+  border: 1px solid var(--line);
+  border-radius: 12px;
+
+  background: var(--surface);
+  color: var(--text);
+
+  box-shadow:
+    0 12px 30px rgb(31 30 28 / 0.12),
+    0 2px 8px rgb(31 30 28 / 0.06);
+
+  font-family: inherit;
+  z-index: 9999;
+}
+
+.profile-popover::backdrop {
+  background: transparent;
+}
+
+/* setting row */
+
+.llm-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 18px;
+  padding: 0;
+}
+
+.llm-setting > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.setting-title {
+  margin: 0;
+
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+
+  color: var(--ink);
+}
+
+.setting-subtitle {
+  margin-top: 4px;
+
+  font-size: 12px;
+  line-height: 1.4;
+
+  color: var(--muted);
+}
+
+/* toggle */
+
+.llm-switch {
+  position: relative;
+  flex: 0 0 auto;
+
+  width: 40px;
+  height: 22px;
+
+  margin: 0;
+  padding: 0;
+
+  border: 0;
+  border-radius: 999px;
+
+  background: var(--line-strong);
+  cursor: pointer;
+
+  transition:
+    background 0.18s ease,
+    opacity 0.18s ease;
+}
+
+.llm-switch span {
+  position: absolute;
+
+  width: 1px;
+  height: 1px;
+
+  margin: -1px;
+  padding: 0;
+
+  overflow: hidden;
+
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+
+  border: 0;
+}
+
+.llm-switch i {
+  position: absolute;
+
+  top: 3px;
+  left: 3px;
+
+  width: 16px;
+  height: 16px;
+
+  border-radius: 50%;
+  background: var(--surface);
+
+  box-shadow: 0 1px 3px rgb(31 30 28 / 0.25);
+
+  transition: transform 0.18s ease;
+}
+
+.llm-switch.is-on {
+  background: var(--brand);
+}
+
+.llm-switch.is-on i {
+  transform: translateX(18px);
+}
+
+.llm-switch:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.llm-switch:focus-visible {
+  outline: 3px solid rgb(23 59 64 / 0.18);
+  outline-offset: 2px;
+}
+
+.llm-switch:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 /* ---------- responsive ---------- */
 @media (max-width: 1024px) {
@@ -1936,6 +2123,14 @@ td:last-child {
     right: 16px;
     bottom: 16px;
     left: 16px;
+    max-width: none;
+  }
+  .profile-popover {
+    right: 16px;
+    left: 16px;
+    bottom: 72px;
+
+    width: auto;
     max-width: none;
   }
 }
