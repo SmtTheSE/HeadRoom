@@ -476,9 +476,7 @@ export default function App() {
     <div className="app-shell">
       <aside className="sidebar">
         <Link className="brand" to={`/${role}/dashboard`}>
-          <span className="brand-mark">
-            h<span>·</span>
-          </span>
+          <img className="brand-mark" src="/logo.svg" alt="" />
           headroom<span className="brand-period">.</span>
         </Link>
         <nav aria-label="Main">
@@ -786,9 +784,7 @@ function SignInPage({
     <div className="signin">
       <header className="signin-top">
         <Link className="brand" to="/employee/dashboard">
-          <span className="brand-mark">
-            h<span>·</span>
-          </span>
+          <img className="brand-mark" src="/logo.svg" alt="" />
           headroom<span className="brand-period">.</span>
         </Link>
       </header>
