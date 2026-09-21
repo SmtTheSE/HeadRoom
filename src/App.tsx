@@ -18,20 +18,16 @@ import {
   CalendarDays,
   Check,
   CheckCheck,
-  ChevronRight,
   Clock3,
-  Focus,
   Gauge,
   LayoutDashboard,
   ListTodo,
   LoaderCircle,
   LogOut,
   MessageSquare,
-  MoreHorizontal,
   Plus,
   RotateCcw,
   ShieldCheck,
-  Sparkles,
   Users,
   X,
   AlertCircle,
@@ -63,6 +59,32 @@ function Badge({ load, capacity }: { load: number; capacity: number }) {
       <span className="status-dot" />
       {s.label}
     </span>
+  );
+}
+function Segmented<T extends string>({
+  options,
+  value,
+  onChange,
+  label,
+}: {
+  options: readonly T[];
+  value: T;
+  onChange: (next: T) => void;
+  label: string;
+}) {
+  return (
+    <div className="segmented" role="group" aria-label={label}>
+      {options.map((o) => (
+        <button
+          key={o}
+          aria-pressed={value === o}
+          className={value === o ? "selected" : ""}
+          onClick={() => onChange(o)}
+        >
+          {o}
+        </button>
+      ))}
+    </div>
   );
 }
 function Avatar({ name, large = false }: { name: string; large?: boolean }) {
@@ -116,7 +138,13 @@ function Modal({
     ref.current?.showModal();
   }, []);
   return (
-    <dialog className="modal" ref={ref} onCancel={onClose} aria-label={title}>
+    <dialog
+      className="modal"
+      ref={ref}
+      onCancel={onClose}
+      onClose={onClose}
+      aria-label={title}
+    >
       <div className="modal-head">
         <h2>{title}</h2>
         <button
@@ -135,13 +163,18 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null),
     [ready, setReady] = useState(false),
     [busy, setBusy] = useState(false),
-    [notice, setNotice] = useState(""),
+    [notice, setNoticeState] = useState<{
+      text: string;
+      tone: "success" | "error";
+    } | null>(null),
     [authOpen, setAuthOpen] = useState(false),
     [resetOpen, setResetOpen] = useState(false);
   const [compose, setCompose] = useState<{
     mode: "request" | "counter" | "revise";
     request?: Negotiation;
   } | null>(null);
+  const setNotice = (text: string, tone: "success" | "error" = "success") =>
+    setNoticeState(text ? { text, tone } : null);
   const location = useLocation(),
     navigate = useNavigate(),
     cache = useQueryClient();
@@ -151,19 +184,19 @@ export default function App() {
   useEffect(() => {
     let mounted = true;
     const authError = new URLSearchParams(window.location.search).get("error_description");
-    if (authError) setNotice(authError);
+    if (authError) setNotice(authError, "error");
     supabase.auth
       .getSession()
       .then(({ data, error }) => {
         if (mounted) {
           setSession(data.session);
           setReady(true);
-          if (error) setNotice(error.message);
+          if (error) setNotice(error.message, "error");
         }
       })
       .catch(() => {
         if (mounted) {
-          setNotice("We could not restore your sign-in. Please try again.");
+          setNotice("We could not restore your sign-in. Please try again.", "error");
           setReady(true);
         }
       });
@@ -215,7 +248,7 @@ export default function App() {
       return false;
     }
     if (!query.data) {
-      setNotice("Your workspace is not ready yet. Please retry loading it.");
+      setNotice("Your workspace is not ready yet. Please retry loading it.", "error");
       return false;
     }
     setBusy(true);
@@ -241,6 +274,7 @@ export default function App() {
         error instanceof Error
           ? error.message
           : "We could not save that. Try again.",
+        "error",
       );
       void query.refetch();
       return false;
@@ -255,14 +289,14 @@ export default function App() {
       options: { redirectTo: window.location.origin + "/auth/callback" },
     });
     if (error) {
-      setNotice(error.message);
+      setNotice(error.message, "error");
       setBusy(false);
     }
   }
   async function signOut() {
     const { error } = await supabase.auth.signOut();
     if (error) {
-      setNotice(error.message);
+      setNotice(error.message, "error");
       return;
     }
     cache.clear();
@@ -276,17 +310,6 @@ export default function App() {
   const pending = state.negotiations.filter(
     (n) => n.status === "pending" || n.status === "counter_proposed",
   ).length;
-  const page = location.pathname.includes("capacity")
-    ? "My capacity"
-    : location.pathname.includes("tasks")
-      ? "My tasks"
-      : location.pathname.includes("negotiations")
-        ? "Workload requests"
-        : location.pathname.includes("employees")
-          ? "Team member"
-          : role === "manager"
-            ? "Team overview"
-            : "My overview";
   const p = person(state, role === "employee" ? "alex" : "sarah");
   return (
     <div className="app-shell">
@@ -297,8 +320,7 @@ export default function App() {
           </span>
           headroom<span className="brand-period">.</span>
         </Link>
-        <div className="workspace-label">DESIGN WORKSPACE</div>
-        <nav>
+        <nav aria-label="Main">
           <NavLink to={`/${role}/dashboard`}>
             <LayoutDashboard size={19} />
             {role === "employee" ? "My overview" : "Team overview"}
@@ -322,14 +344,6 @@ export default function App() {
           </NavLink>
         </nav>
         <div className="sidebar-bottom">
-          <div className="sidebar-note">
-            <Leaf size={20} />
-            <p>
-              Good work starts
-              <br />
-              with a little headroom.
-            </p>
-          </div>
           <div className="profile-mini">
             <Avatar name={p.name} />
             <div>
@@ -341,25 +355,30 @@ export default function App() {
       </aside>
       <div className="workspace">
         <header className="topbar">
-          <div className="breadcrumb">
-            Workspace <ChevronRight size={15} /> <strong>{page}</strong>
-          </div>
+          <span className="topbar-status">
+            <span className="tiny-dot" />
+            {session
+              ? "Private demo workspace"
+              : "Sample workspace · sign in to save changes"}
+          </span>
           <div className="top-actions">
-            <span className="demo-label">DEMO VIEW</span>
-            <div className="role-toggle" aria-label="View as">
-              <button
-                className={role === "employee" ? "selected" : ""}
-                onClick={() => changeRole("employee")}
-              >
-                Employee
-              </button>
-              <button
-                className={role === "manager" ? "selected" : ""}
-                onClick={() => changeRole("manager")}
-              >
-                Manager
-              </button>
-            </div>
+            <Segmented
+              label="View as"
+              options={["Employee", "Manager"] as const}
+              value={role === "employee" ? "Employee" : "Manager"}
+              onChange={(v) =>
+                changeRole(v === "Employee" ? "employee" : "manager")
+              }
+            />
+            <button
+              className="btn ghost"
+              aria-label="Reset demo"
+              disabled={busy}
+              onClick={() => (session ? setResetOpen(true) : setAuthOpen(true))}
+            >
+              <RotateCcw size={15} />
+              <span>Reset demo</span>
+            </button>
             {session ? (
               <button
                 className="icon-btn"
@@ -370,28 +389,15 @@ export default function App() {
                 <LogOut size={18} />
               </button>
             ) : (
-              <button className="signin-top" onClick={() => setAuthOpen(true)}>
+              <button
+                className="btn primary"
+                onClick={() => setAuthOpen(true)}
+              >
                 Sign in
               </button>
             )}
           </div>
         </header>
-        <div className="demo-strip">
-          <span>
-            <span className="tiny-dot" />
-            {session
-              ? "Your private demo workspace"
-              : "Sample workspace · sign in to save changes"}
-            <span className="strip-divider">/</span>Week of September 21, 2026
-          </span>
-          <button
-            disabled={busy}
-            onClick={() => (session ? setResetOpen(true) : setAuthOpen(true))}
-          >
-            <RotateCcw size={13} />
-            Reset demo
-          </button>
-        </div>
         <main>
           {ready && session && query.isError ? (
             <div className="connection-error">
@@ -478,18 +484,18 @@ export default function App() {
             </Routes>
           )}
         </main>
-        <footer className="footer">
-          <span>
-            <ShieldCheck size={14} />
-            Shared work. Personal boundaries.
-          </span>
-          <span>Built for a more sustainable workday.</span>
-        </footer>
       </div>
       {notice && (
-        <div className="toast" role="status">
-          <CheckCircle2 size={19} />
-          <span>{notice}</span>
+        <div
+          className={`toast ${notice.tone}`}
+          role={notice.tone === "error" ? "alert" : "status"}
+        >
+          {notice.tone === "error" ? (
+            <AlertCircle size={18} />
+          ) : (
+            <CheckCircle2 size={18} />
+          )}
+          <span>{notice.text}</span>
           <button onClick={() => setNotice("")} aria-label="Dismiss message">
             <X size={16} />
           </button>
@@ -500,31 +506,18 @@ export default function App() {
           title="A little room to do your best work."
           onClose={() => setAuthOpen(false)}
         >
-          <div className="auth-art">
-            <span className="brand-mark">
-              h<span>·</span>
-            </span>
-            <div className="auth-line" />
-            <Focus size={40} />
-          </div>
           <p className="muted">
             Sign in to save your tasks, explore your capacity, and try the
-            complete employee-to-manager workflow.
+            complete employee-to-manager workflow in a private demo workspace
+            with synthetic data.
           </p>
-          <div className="info-box">
-            <ShieldCheck size={18} />
-            <p>
-              You’ll get your own demo workspace with Alex and Sarah. All
-              employee information is synthetic.
-            </p>
-          </div>
           <button className="btn google full" disabled={busy} onClick={signIn}>
             <span className="google-g">G</span>Continue with Google
             <ArrowRight size={18} />
           </button>
           <p className="fine-print">
-            Your Google account is used for sign-in only. No access to your
-            email or calendar.
+            Google is used for sign-in only. No access to your email or
+            calendar.
           </p>
         </Modal>
       )}
@@ -599,13 +592,14 @@ function CapacityCard({
   compact?: boolean;
 }) {
   const p = person(state, employee),
-    load = workload(state.tasks, employee);
+    load = workload(state.tasks, employee),
+    onCapacityPage = useLocation().pathname.endsWith("/capacity");
   return (
     <section className={`capacity-card ${compact ? "compact" : ""}`}>
       <div className="card-top">
         <span>
-          <Gauge size={18} />
-          YOUR WEEK, AT A GLANCE
+          <Gauge size={16} />
+          This week
         </span>
         <Badge load={load} capacity={p.capacity} />
       </div>
@@ -615,10 +609,6 @@ function CapacityCard({
       </div>
       <p className="capacity-description">Personalized workload · this week</p>
       <Progress load={load} capacity={p.capacity} dark />
-      <div className="capacity-scale">
-        <span>0h</span>
-        <span>{p.capacity}h focus capacity</span>
-      </div>
       <div className="capacity-bottom">
         <span className="capacity-symbol">
           {load > p.capacity ? <AlertCircle size={20} /> : <Leaf size={20} />}
@@ -635,9 +625,11 @@ function CapacityCard({
               : "Meetings, breaks, and life need space too."}
           </span>
         </p>
-        <Link to="/employee/capacity" aria-label="View capacity breakdown">
-          <ArrowUpRight size={22} />
-        </Link>
+        {!onCapacityPage && (
+          <Link to="/employee/capacity" aria-label="View capacity breakdown">
+            <ArrowUpRight size={22} />
+          </Link>
+        )}
       </div>
     </section>
   );
@@ -676,17 +668,12 @@ function Dashboard({
   return (
     <>
       <PageHeading
-        eyebrow="WEDNESDAY, SEPTEMBER 23"
+        eyebrow="Wednesday, September 23 · Week of Sep 21 – 27"
         title="Good morning, Alex."
         subtitle="One thing at a time. Let’s make today feel manageable."
-      >
-        <span className="date-chip">
-          <CalendarDays size={17} />
-          Sep 21 – 27
-        </span>
-      </PageHeading>
+      />
       {resolved && (
-        <div className="success-banner">
+        <div className="banner success">
           <CheckCircle2 size={21} />
           <div>
             <strong>Conflict resolved. You have room to focus.</strong>
@@ -698,7 +685,7 @@ function Dashboard({
         </div>
       )}
       {load > 30 && (
-        <div className="conflict-banner">
+        <div className="banner conflict">
           <AlertCircle size={22} />
           <div>
             <strong>Your week needs a little more room.</strong>
@@ -709,13 +696,13 @@ function Dashboard({
           </div>
           {open ? (
             <Link
-              className="btn danger-btn"
+              className="btn danger"
               to={`/employee/negotiations/${open.id}`}
             >
               View request <ArrowRight size={16} />
             </Link>
           ) : (
-            <button className="btn danger-btn" onClick={resolve}>
+            <button className="btn danger" onClick={resolve}>
               Resolve workload <ArrowRight size={16} />
             </button>
           )}
@@ -724,10 +711,7 @@ function Dashboard({
       <div className="dashboard-grid">
         <section className="card focus-card">
           <div className="section-head">
-            <h2>
-              <Focus size={21} />
-              Today’s focus
-            </h2>
+            <h2>Today’s focus</h2>
             <span className="muted small">{focus.length} small steps</span>
           </div>
           <p className="section-description">
@@ -818,32 +802,11 @@ function Dashboard({
             </table>
           </div>
         </section>
-        <div className="right-stack">
-          <section className="insight-card">
+        <section className="assignment-card">
             <span className="eyebrow">
-              <Sparkles size={16} />
-              MADE FOR YOUR PACE
+              <span className="tiny-dot" />
+              Demo scenario
             </span>
-            <h3>
-              Your estimates,
-              <br />a little more you.
-            </h3>
-            <p>
-              Your recent work patterns help make your next estimate more
-              realistic.
-            </p>
-            <Link className="text-link" to="/employee/capacity">
-              See how it works <ArrowRight size={16} />
-            </Link>
-          </section>
-          <section className="assignment-card">
-            <div className="section-head">
-              <span className="small">
-                <span className="tiny-dot" />
-                DEMO SCENARIO
-              </span>
-              <MoreHorizontal size={18} />
-            </div>
             <h3>
               {draft
                 ? "A new request just came in."
@@ -858,8 +821,7 @@ function Dashboard({
               {draft ? <Plus size={16} /> : <Check size={16} />}{" "}
               {draft ? "Add demo assignment" : "Assignment added"}
             </button>
-          </section>
-        </div>
+        </section>
       </div>
     </>
   );
@@ -907,12 +869,12 @@ function TaskRow({ task, state }: { task: Task; state: AppState }) {
           />
         </div>
       </div>
-      <ChevronRight size={18} />
     </Link>
   );
 }
+const TASK_FILTERS = ["All", "Today", "This Week", "At Risk", "Completed"] as const;
 function TasksPage({ state }: { state: AppState }) {
-  const [filter, setFilter] = useState("All");
+  const [filter, setFilter] = useState<(typeof TASK_FILTERS)[number]>("All");
   const tasks = state.tasks
     .filter(
       (t) =>
@@ -934,23 +896,15 @@ function TasksPage({ state }: { state: AppState }) {
   return (
     <>
       <PageHeading
-        eyebrow="ONE STEP AT A TIME"
-        title="Your work, organized."
-        subtitle="Clear tasks. Smaller steps. A plan you can come back to."
+        title="My tasks"
+        subtitle="Confirmed work with estimates personalized to your pace."
       />
-      <div className="tabs" role="tablist" aria-label="Filter tasks">
-        {["All", "Today", "This Week", "At Risk", "Completed"].map((f) => (
-          <button
-            role="tab"
-            aria-selected={filter === f}
-            className={filter === f ? "active" : ""}
-            onClick={() => setFilter(f)}
-            key={f}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
+      <Segmented
+        label="Filter tasks"
+        options={TASK_FILTERS}
+        value={filter}
+        onChange={setFilter}
+      />
       <section className="card task-list">
         {tasks.length ? (
           tasks.map((t) => <TaskRow key={t.id} task={t} state={state} />)
@@ -962,10 +916,6 @@ function TasksPage({ state }: { state: AppState }) {
           </div>
         )}
       </section>
-      <p className="caption">
-        <ListTodo size={15} />
-        These confirmed tasks came from your team’s Monday planning meeting.
-      </p>
     </>
   );
 }
@@ -998,7 +948,7 @@ function TaskDetail({
         Back to my tasks
       </Link>
       <PageHeading
-        eyebrow={task.category.toUpperCase()}
+        eyebrow={task.category}
         title={task.title}
         subtitle={task.description}
       />
@@ -1208,17 +1158,13 @@ function CapacityPage({
   return (
     <>
       <PageHeading
-        eyebrow="UNDERSTAND YOUR PACE"
-        title="Make room for realistic work."
-        subtitle="Your capacity is a planning tool, not a measure of your value."
+        title="My capacity"
+        subtitle="A planning tool, not a measure of your value."
       />
       <div className="capacity-layout">
         <CapacityCard state={state} />
         <section className="card capacity-explainer">
-          <div className="section-head">
-            <h2>Why 30 hours?</h2>
-            <Clock3 size={20} />
-          </div>
+          <h2>Why 30 hours?</h2>
           <p>
             In a 40-hour week, we leave 10 hours for meetings, admin,
             communication, and breaks.
@@ -1244,20 +1190,12 @@ function CapacityPage({
       <section className="card">
         <div className="section-head">
           <h2>Where your capacity goes</h2>
-          <div className="role-toggle">
-            <button
-              className={!next ? "selected" : ""}
-              onClick={() => setNext(false)}
-            >
-              This week
-            </button>
-            <button
-              className={next ? "selected" : ""}
-              onClick={() => setNext(true)}
-            >
-              Next week
-            </button>
-          </div>
+          <Segmented
+            label="Week"
+            options={["This week", "Next week"] as const}
+            value={next ? "Next week" : "This week"}
+            onChange={(v) => setNext(v === "Next week")}
+          />
         </div>
         <Breakdown state={state} next={next} />
         <p className="caption">
@@ -1268,10 +1206,7 @@ function CapacityPage({
       </section>
       <section className="learning-section">
         <div className="section-head">
-          <h2>
-            <Sparkles size={21} />
-            Learning your rhythm
-          </h2>
+          <h2>Learning your rhythm</h2>
           <span className="muted small">From your completed work</span>
         </div>
         <div className="learning-grid">
@@ -1331,15 +1266,10 @@ function ManagerDashboard({ state }: { state: AppState }) {
   return (
     <>
       <PageHeading
-        eyebrow="A SHARED VIEW OF THE WEEK"
+        eyebrow="Wednesday, September 23 · Week of Sep 21 – 27"
         title="Good morning, Sarah."
         subtitle="See where the team has room, and where a conversation could help."
-      >
-        <span className="date-chip">
-          <CalendarDays size={17} />
-          Sep 21 – 27
-        </span>
-      </PageHeading>
+      />
       <div className="stats-grid">
         {[
           ["Team members", employees.length, Users],
@@ -1527,10 +1457,10 @@ function RequestRow({ n, role }: { n: Negotiation; role: Role }) {
       >
         {n.status.replace("_", " ")}
       </span>
-      <ChevronRight size={18} />
     </Link>
   );
 }
+const REQUEST_FILTERS = ["All", "Open", "Closed"] as const;
 function Requests({
   state,
   role,
@@ -1540,7 +1470,8 @@ function Requests({
   role: Role;
   resolve: () => void;
 }) {
-  const [filter, setFilter] = useState("All");
+  const [filter, setFilter] =
+    useState<(typeof REQUEST_FILTERS)[number]>("All");
   const list = state.negotiations.filter(
     (n) =>
       filter === "All" ||
@@ -1551,9 +1482,8 @@ function Requests({
   return (
     <>
       <PageHeading
-        eyebrow="A CONVERSATION, NOT A COMPROMISE"
-        title="Let’s make the workload work."
-        subtitle="A shared place to discuss priorities and agree on a realistic plan."
+        title="Workload requests"
+        subtitle="Discuss priorities and agree on a realistic plan together."
       >
         {role === "employee" &&
           workload(state.tasks) > 30 &&
@@ -1566,17 +1496,12 @@ function Requests({
             </button>
           )}
       </PageHeading>
-      <div className="tabs">
-        {["All", "Open", "Closed"].map((f) => (
-          <button
-            className={filter === f ? "active" : ""}
-            onClick={() => setFilter(f)}
-            key={f}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
+      <Segmented
+        label="Filter requests"
+        options={REQUEST_FILTERS}
+        value={filter}
+        onChange={setFilter}
+      />
       <section className="card">
         {list.length ? (
           list.map((n) => <RequestRow key={n.id} n={n} role={role} />)
@@ -1796,7 +1721,7 @@ function RequestDetail({
         Back to requests
       </Link>
       <PageHeading
-        eyebrow="ALEX MORGAN ↔ SARAH LEE"
+        eyebrow="Alex Morgan ↔ Sarah Lee"
         title={n.proposal.label}
         subtitle={`Revision ${n.revision} · ${n.status.replace("_", " ")}`}
       />

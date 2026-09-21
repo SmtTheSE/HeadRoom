@@ -22,13 +22,11 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",
-    "@tailwindcss/vite": "^4.1.0",
     "@types/node": "^22.18.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "@vitejs/plugin-react": "^5.0.0",
     "pg": "^8.16.0",
-    "tailwindcss": "^4.1.0",
     "typescript": "~5.9.2",
     "vite": "^7.1.0",
     "vitest": "^4.1.11"
