@@ -482,6 +482,14 @@ textarea:focus-visible {
   font-size: 15px;
   color: var(--muted);
 }
+.current-task {
+  font-size: 17px;
+  color: var(--text);
+}
+.current-task strong {
+  font-weight: 600;
+  color: var(--ink);
+}
 .section-head {
   display: flex;
   align-items: center;

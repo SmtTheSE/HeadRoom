@@ -846,7 +846,7 @@ function PageHeading({
 }: {
   eyebrow?: string;
   title: string;
-  subtitle?: string;
+  subtitle?: ReactNode;
   children?: ReactNode;
 }) {
   return (
@@ -947,9 +947,16 @@ function Dashboard({
         eyebrow={`${longDate.format(now)} · ${clock.format(now)} · ${userName}`}
         title={focus[0]?.title ?? "You’re all caught up."}
         subtitle={
-          focus[0]
-            ? `Current task · Main task: ${state.tasks.find((t) => t.id === focus[0].task_id)?.title}`
-            : "No focus steps left for today."
+          focus[0] ? (
+            <span className="current-task">
+              Current task · Main task:{" "}
+              <strong>
+                {state.tasks.find((t) => t.id === focus[0].task_id)?.title}
+              </strong>
+            </span>
+          ) : (
+            "No focus steps left for today."
+          )
         }
       />
       <TaskInbox state={state} busy={busy} run={run} />
