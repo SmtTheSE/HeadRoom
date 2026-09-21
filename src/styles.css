@@ -1979,6 +1979,9 @@ td:last-child {
   background: var(--paper);
 }
 .signin-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 22px 40px;
 }
 .signin-top .brand {
@@ -2501,6 +2504,9 @@ td:last-child {
   .top-actions .ghost span {
     display: none;
   }
+  .topbar-display {
+    display: inline-flex;
+  }
   main {
     padding: 24px 16px 48px;
   }
@@ -2517,6 +2523,11 @@ td:last-child {
   }
   .focus-top {
     padding: 14px 16px;
+  }
+  .display-rows .llm-setting {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
   }
   .focus-main {
     padding: 5vh 16px 48px;
@@ -2645,10 +2656,160 @@ td:last-child {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  html:not([data-motion="allow"]) *,
+  html:not([data-motion="allow"]) *::before,
+  html:not([data-motion="allow"]) *::after {
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* ---------- display preferences ---------- */
+html[data-motion="reduce"] *,
+html[data-motion="reduce"] *::before,
+html[data-motion="reduce"] *::after {
+  animation: none !important;
+  transition: none !important;
+}
+html[data-motion="reduce"] .ai-shimmer {
+  background: none;
+  color: var(--ink);
+}
+html[data-text="large"] {
+  font-size: 115%;
+}
+html[data-text="larger"] {
+  font-size: 130%;
+}
+html[data-contrast="high"] {
+  --paper: #ffffff;
+  --oat: #ffffff;
+  --oat-strong: #e0e0e0;
+  --surface: #ffffff;
+  --line: #6b6b6b;
+  --line-strong: #000000;
+  --ink: #000000;
+  --text: #000000;
+  --muted: #2b2b2b;
+  --link: #000000;
+  --brand: #0b1f22;
+  --green-text: #0f3d0a;
+  --green-bg: #ffffff;
+  --green-bar: #0f5c1f;
+  --amber-text: #4a3500;
+  --amber-bg: #ffffff;
+  --red-text: #7a0000;
+  --red-bg: #ffffff;
+  --red-solid: #8a0000;
+  --red-bar: #b00000;
+  --blue-text: #002a5c;
+  --blue-bg: #ffffff;
+  --shadow: none;
+}
+html[data-contrast="high"] .sidebar {
+  border-right: 2px solid #000;
+}
+html[data-contrast="high"] .badge,
+html[data-contrast="high"] .priority,
+html[data-contrast="high"] .time-pill,
+html[data-contrast="high"] .recommended,
+html[data-contrast="high"] .overline {
+  border: 1.5px solid currentColor;
+}
+html[data-contrast="high"] .btn.secondary,
+html[data-contrast="high"] .btn.provider,
+html[data-contrast="high"] .segmented,
+html[data-contrast="high"] .inbox-item,
+html[data-contrast="high"] .focus-next,
+html[data-contrast="high"] .modal,
+html[data-contrast="high"] .toast {
+  border: 2px solid #000;
+}
+html[data-contrast="high"] .segmented button.selected {
+  outline: 2px solid #000;
+  outline-offset: -2px;
+}
+html[data-contrast="high"] .capacity-hero,
+html[data-contrast="high"] .preview-card {
+  border: 2px solid #000;
+}
+html[data-contrast="high"] .capacity-label,
+html[data-contrast="high"] .capacity-number span,
+html[data-contrast="high"] .capacity-detail-head,
+html[data-contrast="high"] .capacity-note,
+html[data-contrast="high"] .capacity-link {
+  color: #fff;
+}
+html[data-contrast="high"] .progress {
+  background: #d0d0d0;
+  outline: 1px solid #000;
+}
+html[data-contrast="high"] .progress.on-dark {
+  background: #4a4a4a;
+}
+html[data-contrast="high"] :focus-visible {
+  outline: 3px solid #000;
+  outline-offset: 3px;
+}
+html[data-simple="on"] .optional,
+html[data-simple="on"] .caption,
+html[data-simple="on"] .section-description,
+html[data-simple="on"] .privacy-note,
+html[data-simple="on"] .signin-visual {
+  display: none;
+}
+html[data-simple="on"] .page-heading p {
+  display: none;
+}
+.inbox-collapsed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding: 12px 16px;
+  border: 1px solid var(--line-strong);
+  border-left: 3px solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: 0.875rem;
+}
+.display-btn {
+  gap: 7px;
+}
+.sidebar-display {
+  margin: 0 0 8px 2px;
+}
+.topbar-display {
+  display: none;
+}
+.display-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 20px;
+}
+.display-rows .llm-setting {
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.display-rows .llm-setting:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+.focus-top-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }

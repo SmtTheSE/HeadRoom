@@ -4,6 +4,8 @@ import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App";
 import "./styles.css";
+import { applyDisplay, readDisplay } from "./display";
+applyDisplay(readDisplay()); // before first paint, so there is no flash
 const client = new QueryClient({
   defaultOptions: {
     queries: { staleTime: 15000, retry: 1, refetchOnWindowFocus: true },

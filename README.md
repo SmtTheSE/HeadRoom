@@ -90,6 +90,8 @@ Headroom targets WCAG 2.2 AA and is designed for people with ADHD first: one col
 
 Audit (22 Sep 2026, axe-core 4.x, WCAG 2.x A/AA + best-practice rules, all 10 routes including dialogs): **0 violations**. Manual checks passed: full keyboard operation, focus returns to the opening control after every dialog, skip link, per-page titles, 320 px reflow with no horizontal scroll, 200 % zoom, `prefers-reduced-motion`, and Windows High Contrast (`forced-colors`).
 
+**Display preferences** (the *Display* button in the sidebar, on the sign-in page, and in focus mode) let each person adjust the interface for themselves, instantly and per browser: **Motion** (system / reduce / allow — the OS setting is respected by default and can be overridden either way), **Text size** (default / large / larger — the whole interface scales and reflows), **High contrast** (black text, solid borders, no tinted backgrounds), and **Simplified view** (only today’s focus and capacity; upcoming work, explanations, and the Teams inbox collapse). Every change is announced to screen readers.
+
 What is implemented:
 
 - Semantic landmarks, per-route `document.title`, and a "Skip to content" link.

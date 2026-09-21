@@ -1,4 +1,6 @@
 import {
+  createContext,
+  useContext,
   useEffect,
   useRef,
   useState,
@@ -30,6 +32,7 @@ import {
   ListTodo,
   LoaderCircle,
   LogOut,
+  SlidersHorizontal,
   MessageSquare,
   Plus,
   RotateCcw,
@@ -42,6 +45,7 @@ import {
   supabase,
 } from "./data";
 import { generateSteps } from "./breakdown";
+import { applyDisplay, readDisplay, type Display } from "./display";
 import { previewState } from "./seed";
 import {
   active,
@@ -122,6 +126,178 @@ function ProposalTitle({
         <b>{d.to}</b>
       </span>
     </span>
+  );
+}
+/* ---------- display preferences ---------- */
+const DisplayContext = createContext<{
+  display: Display;
+  update: (patch: Partial<Display>) => void;
+}>({ display: readDisplay(), update: () => {} });
+const useDisplay = () => useContext(DisplayContext);
+function DisplayButton({ className = "" }: { className?: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        className={`btn ghost display-btn ${className}`}
+        onClick={() => setOpen(true)}
+        aria-haspopup="dialog"
+      >
+        <SlidersHorizontal size={15} />
+        Display
+      </button>
+      {open && <DisplayPanel onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+function DisplayPanel({ onClose }: { onClose: () => void }) {
+  const { display, update } = useDisplay();
+  const [announce, setAnnounce] = useState("");
+  const set = (patch: Partial<Display>, message: string) => {
+    update(patch);
+    setAnnounce(message);
+  };
+  const Switch = ({
+    id,
+    on,
+    onChange,
+  }: {
+    id: string;
+    on: boolean;
+    onChange: (next: boolean) => void;
+  }) => (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-labelledby={id}
+      className={`llm-switch ${on ? "is-on" : ""}`}
+      onClick={() => onChange(!on)}
+    >
+      <span>{on ? "On" : "Off"}</span>
+      <i aria-hidden="true" />
+    </button>
+  );
+  return (
+    <Modal title="Display preferences" onClose={onClose}>
+      <p className="muted">
+        These apply to this browser only and take effect immediately.
+      </p>
+      <div className="display-rows">
+        <div className="llm-setting">
+          <div>
+            <div className="setting-title" id="pref-motion">
+              Motion
+            </div>
+            <div className="setting-subtitle">
+              Animations while the AI works and when steps appear. “System”
+              follows your device setting.
+            </div>
+          </div>
+          <Segmented
+            label="Motion"
+            options={["System", "Reduce", "Allow"] as const}
+            value={
+              display.motion === "reduce"
+                ? "Reduce"
+                : display.motion === "allow"
+                  ? "Allow"
+                  : "System"
+            }
+            onChange={(v) =>
+              set(
+                {
+                  motion:
+                    v === "Reduce"
+                      ? "reduce"
+                      : v === "Allow"
+                        ? "allow"
+                        : "system",
+                },
+                `Motion set to ${v.toLowerCase()}`,
+              )
+            }
+          />
+        </div>
+        <div className="llm-setting">
+          <div>
+            <div className="setting-title" id="pref-text">
+              Text size
+            </div>
+            <div className="setting-subtitle">
+              Scales the whole interface. Layout reflows; nothing is cut off.
+            </div>
+          </div>
+          <Segmented
+            label="Text size"
+            options={["Default", "Large", "Larger"] as const}
+            value={
+              display.text === "large"
+                ? "Large"
+                : display.text === "larger"
+                  ? "Larger"
+                  : "Default"
+            }
+            onChange={(v) =>
+              set(
+                {
+                  text:
+                    v === "Large"
+                      ? "large"
+                      : v === "Larger"
+                        ? "larger"
+                        : "default",
+                },
+                `Text size ${v.toLowerCase()}`,
+              )
+            }
+          />
+        </div>
+        <div className="llm-setting">
+          <div>
+            <div className="setting-title" id="pref-contrast">
+              High contrast
+            </div>
+            <div className="setting-subtitle">
+              Black text, solid borders, no tinted backgrounds.
+            </div>
+          </div>
+          <Switch
+            id="pref-contrast"
+            on={display.contrast}
+            onChange={(on) =>
+              set({ contrast: on }, `High contrast ${on ? "on" : "off"}`)
+            }
+          />
+        </div>
+        <div className="llm-setting">
+          <div>
+            <div className="setting-title" id="pref-simple">
+              Simplified view
+            </div>
+            <div className="setting-subtitle">
+              Shows only today’s focus and your capacity. Upcoming work,
+              explanations, and the Teams inbox are collapsed.
+            </div>
+          </div>
+          <Switch
+            id="pref-simple"
+            on={display.simple}
+            onChange={(on) =>
+              set({ simple: on }, `Simplified view ${on ? "on" : "off"}`)
+            }
+          />
+        </div>
+      </div>
+      <p className="sr-only" role="status" aria-live="polite">
+        {announce}
+      </p>
+      <div className="modal-actions">
+        <button className="btn primary" onClick={onClose}>
+          Done
+        </button>
+      </div>
+    </Modal>
   );
 }
 function Segmented<T extends string>({
@@ -420,6 +596,13 @@ export default function App() {
     }
   };
   const [ai, setAi] = useState<AiState>(null);
+  const [display, setDisplay] = useState<Display>(readDisplay);
+  const updateDisplay = (patch: Partial<Display>) =>
+    setDisplay((d) => {
+      const next = { ...d, ...patch };
+      applyDisplay(next);
+      return next;
+    });
   const runBreakdown: Breakdown = async (task) => {
     if (!session) {
       navigate("/sign-in");
@@ -505,15 +688,20 @@ export default function App() {
       </button>
     </div>
   );
+  const provider = (children: ReactNode) => (
+    <DisplayContext.Provider value={{ display, update: updateDisplay }}>
+      {children}
+    </DisplayContext.Provider>
+  );
   if (location.pathname === "/sign-in")
-    return (
+    return provider(
       <>
         <SignInPage state={state} busy={busy || !ready} onGoogle={signIn} />
         {toast}
-      </>
+      </>,
     );
   if (location.pathname.startsWith("/employee/focus/"))
-    return (
+    return provider(
       <>
         <FocusPage
           state={state}
@@ -522,9 +710,9 @@ export default function App() {
           stepId={location.pathname.split("/").pop() ?? ""}
         />
         {toast}
-      </>
+      </>,
     );
-  return (
+  return provider(
     <div className="app-shell">
       <a className="skip-link" href="#main">
         Skip to content
@@ -558,6 +746,7 @@ export default function App() {
           </NavLink>
         </nav>
         <div className="sidebar-bottom">
+          <DisplayButton className="sidebar-display" />
           <div id="profile-settings" popover="auto" className="profile-popover">
             <div className="llm-setting">
               <div>
@@ -648,6 +837,7 @@ export default function App() {
               : "Sample workspace · Sign in to save changes"}
           </span>
           <div className="top-actions">
+            <DisplayButton className="topbar-display" />
             <Segmented
               label="View as"
               options={["Employee", "Manager"] as const}
@@ -820,7 +1010,7 @@ export default function App() {
           onClose={() => setCompose(null)}
         />
       )}
-    </div>
+    </div>,
   );
 }
 function SignInPage({
@@ -842,6 +1032,7 @@ function SignInPage({
           <img className="brand-mark" src="/logo.svg" alt="" />
           headroom<span className="brand-period">.</span>
         </Link>
+        <DisplayButton />
       </header>
       <main className="signin-main">
         <section className="signin-copy">
@@ -1074,6 +1265,7 @@ function FocusPage({
       <div className="focus">
         <header className="focus-top">
           <Link to="/employee/dashboard">Exit focus</Link>
+          <DisplayButton />
         </header>
         <main className="focus-main focus-done" id="main" tabIndex={-1}>
           <span className="overline">Step complete</span>
@@ -1120,8 +1312,12 @@ function FocusPage({
     <div className="focus">
       <header className="focus-top">
         <Link to="/employee/dashboard">Exit focus</Link>
-        <span className="muted">
-          {queue.length - 1} more step{queue.length === 2 ? "" : "s"} after this
+        <span className="focus-top-right">
+          <span className="muted">
+            {queue.length - 1} more step{queue.length === 2 ? "" : "s"} after
+            this
+          </span>
+          <DisplayButton />
         </span>
       </header>
       <main className="focus-main" id="main" tabIndex={-1}>
@@ -1384,7 +1580,7 @@ function Dashboard({
           )}
         </div>
       </section>
-      <section className="section">
+      <section className="section optional">
         <div className="section-head">
           <h2>Due this week</h2>
           <Link
@@ -1464,6 +1660,8 @@ function TaskInbox({
   const [dismissed, setDismissed] = useState<string[]>(readDismissed);
   const [openId, setOpenId] = useState<string | null>(null);
   const [receivedAt] = useState(() => new Date());
+  const { display } = useDisplay();
+  const [showAll, setShowAll] = useState(false);
   const drafts = state.tasks.filter(
     (t) =>
       t.employee_id === "alex" &&
@@ -1471,6 +1669,18 @@ function TaskInbox({
       !dismissed.includes(t.id),
   );
   if (!drafts.length) return null;
+  if (display.simple && !showAll)
+    return (
+      <div className="inbox-collapsed">
+        <span>
+          {drafts.length} potential task{drafts.length === 1 ? "" : "s"} from
+          Microsoft Teams
+        </span>
+        <button className="btn secondary" onClick={() => setShowAll(true)}>
+          Show
+        </button>
+      </div>
+    );
   const dismiss = (id: string) => {
     const next = [...dismissed, id];
     setDismissed(next);
@@ -2179,7 +2389,7 @@ function CapacityPage({
           does not reduce the planning total.
         </p>
       </section>
-      <section className="section">
+      <section className="section optional">
         <h2>Focus capacity</h2>
         <p className="muted">
           Of a 40-hour week, 10 hours are reserved for meetings, administration,
@@ -2196,7 +2406,7 @@ function CapacityPage({
           </button>
         )}
       </section>
-      <section className="section">
+      <section className="section optional">
         <div className="section-head">
           <h2>Estimate calibration</h2>
           <span className="muted">Based on completed work</span>
