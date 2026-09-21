@@ -1594,6 +1594,29 @@ td:last-child {
   align-items: center;
   gap: 18px;
 }
+.ai-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper);
+  font-size: 14px;
+  font-weight: 500;
+}
+@keyframes ai-word-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.ai-badge .ai-shimmer {
+  animation:
+    ai-shimmer 1.8s linear infinite,
+    ai-word-in 0.35s ease both;
+}
 .ai-head strong {
   display: block;
   font-size: 15px;
@@ -1606,61 +1629,11 @@ td:last-child {
   color: var(--muted);
 }
 
-/* reasoning trace */
-.ai-phases {
-  margin: 18px 0 0;
-  padding: 0;
-  list-style: none;
-}
-.ai-phases li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 0;
-  font-size: 14px;
-  transition: opacity 0.3s;
-}
-.ai-phases li.pending {
-  opacity: 0.45;
-  color: var(--muted);
-}
-.ai-phases li.done {
-  color: var(--muted);
-}
-.ai-tick {
-  position: relative;
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-  border: 1.5px solid var(--line-strong);
-  border-radius: 50%;
-}
-.ai-phases li.active .ai-tick {
-  border-color: var(--green-bar);
-  border-top-color: transparent;
-  animation: ai-spin 0.9s linear infinite;
-}
-.ai-phases li.done .ai-tick {
-  border-color: var(--green-bar);
-  background: var(--green-bar);
-  animation: ai-tick-in 0.3s ease both;
-}
-.ai-phases li.done .ai-tick::after {
-  content: "";
-  position: absolute;
-  left: 4px;
-  top: 1px;
-  width: 4px;
-  height: 8px;
-  border: solid #fff;
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
-}
 
 /* skeleton rows with a travelling wave */
 .ai-skeleton {
-  margin: 14px 0 0;
-  padding: 12px 0 0;
+  margin: 18px 0 0;
+  padding: 14px 0 0;
   border-top: 1px solid var(--line);
   list-style: none;
 }

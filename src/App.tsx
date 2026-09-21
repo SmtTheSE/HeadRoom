@@ -1281,12 +1281,35 @@ function TeamsMark() {
 const reducedMotion = () =>
   typeof window !== "undefined" &&
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-const AI_PHASES = (h: number) => [
-  "Reading the task and its context",
-  `Sizing the work to ${hours(h)}h`,
-  "Drafting sequential steps",
-  "Checking the plan for gaps",
+/* Claude's rotating status verbs. */
+const AI_WORDS = [
+  "Thinking",
+  "Pondering",
+  "Reasoning",
+  "Considering",
+  "Drafting",
+  "Refining",
+  "Synthesizing",
+  "Finalizing",
 ];
+function useAiWord() {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setI((n) => (n + 1) % AI_WORDS.length), 1400);
+    return () => clearInterval(t);
+  }, []);
+  return AI_WORDS[i];
+}
+function AiBadge() {
+  const word = useAiWord();
+  return (
+    <span className="ai-badge">
+      <span className="ai-shimmer" key={word}>
+        {word}…
+      </span>
+    </span>
+  );
+}
 function AiOrb({ small = false }: { small?: boolean }) {
   return (
     <span className={`ai-orb ${small ? "small" : ""}`} aria-hidden="true">
@@ -1296,23 +1319,17 @@ function AiOrb({ small = false }: { small?: boolean }) {
   );
 }
 function AiLabel() {
+  const word = useAiWord();
   return (
     <>
       <AiOrb small />
-      <span className="ai-shimmer">Breaking down…</span>
+      <span className="ai-shimmer" key={word}>
+        {word}…
+      </span>
     </>
   );
 }
-function AiWorking({ hours: h }: { hours: number }) {
-  const phases = AI_PHASES(h);
-  const [i, setI] = useState(0);
-  useEffect(() => {
-    const timer = setInterval(
-      () => setI((n) => Math.min(n + 1, phases.length - 1)),
-      1600,
-    );
-    return () => clearInterval(timer);
-  }, [phases.length]);
+function AiWorking() {
   return (
     <div className="ai-panel" role="status" aria-live="polite">
       <div className="ai-bar" aria-hidden="true">
@@ -1320,26 +1337,8 @@ function AiWorking({ hours: h }: { hours: number }) {
       </div>
       <div className="ai-head">
         <AiOrb />
-        <div>
-          <strong>AI breakdown in progress</strong>
-          <span>Gemini is turning this task into steps you can tick off.</span>
-        </div>
+        <AiBadge />
       </div>
-      <ol className="ai-phases">
-        {phases.map((phase, n) => (
-          <li
-            key={phase}
-            className={n < i ? "done" : n === i ? "active" : "pending"}
-          >
-            <span className="ai-tick" aria-hidden="true" />
-            {n === i ? (
-              <span className="ai-shimmer">{phase}…</span>
-            ) : (
-              <span>{phase}</span>
-            )}
-          </li>
-        ))}
-      </ol>
       <ul className="ai-skeleton" aria-hidden="true">
         <li style={{ width: "62%" }} />
         <li style={{ width: "74%" }} />
@@ -1663,7 +1662,7 @@ function TaskDetail({
         </div>
         <div className="subtask-list">
           {working ? (
-            <AiWorking hours={task.personalized_hours} />
+            <AiWorking />
           ) : reveal ? (
             subs.map((s, i) => (
               <RevealedStep
