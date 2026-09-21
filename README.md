@@ -57,16 +57,28 @@ The app supports updates across tabs with a Realtime workspace-version subscript
 
 ## AI breakdown
 
-Tasks without steps show an **AI breakdown** button (task list and task detail). It asks the `breakdown` Edge Function for 3–6 steps sized to the task's personalized estimate, then stores them through `headroom_breakdown()`, which validates the steps and bumps the task and workspace versions. If the function is not deployed, an offline category planner supplies the steps and the toast says so.
+Tasks without steps show an **AI breakdown** button (task list and task detail). A real Gemini call generates 3–8 task-specific steps using the saved title, description, category, and personalized estimate. Structured JSON is validated and step durations are allocated to the existing time budget. The app stores the steps through `headroom_breakdown()`, which validates ownership and workspace versions. Provider failures show an error; there is no silent preset fallback.
 
-To enable Claude-generated steps:
+### Local testing without Supabase dashboard access
+
+1. Copy `config/ai.env.example` to `.env.server.local` in the project root.
+2. Create your own [Gemini API key](https://aistudio.google.com/apikey), set `GEMINI_API_KEY` in that ignored file, and save. Never put it in a `VITE_` variable.
+3. Run `npm run dev` and open `http://127.0.0.1:5173/ai-playground`. **Generate with Gemini** makes a real call without signing in or writing to the database. **Simulate a test response** is explicitly labeled test data and is confined to this playground.
+4. For the integrated flow, sign in to the local app, open My Tasks, and select AI breakdown on an eligible task. The local server validates your Supabase session and loads the saved task before calling Gemini. Existing migrations, including `002_breakdown.sql`, must already be installed to save results.
+
+The key stays in the local server. Configuration is reread for every request. The local endpoints accept only the loopback app origin and are excluded from production builds. The Gemini request includes task context each time; it does not depend on this development chat's history.
+
+The default model is `gemini-3.1-flash-lite`. Its [free tier](https://ai.google.dev/gemini-api/docs/pricing) has quotas, and free-tier content may be used to improve Google's products: use synthetic competition tasks. Describe this feature as powered by Gemini. A paid plan is not required for eligible free-tier usage.
+
+### Hosted app
+
+The project owner must set `GEMINI_API_KEY` under Supabase Edge Functions → Secrets, then deploy:
 
 ```sh
 supabase functions deploy breakdown
-supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-The API key lives only in the Edge Function's secrets; the browser never sees it.
+Optionally set `GEMINI_MODEL` to another compatible model. The hosted app calls this Edge Function; local configuration does not activate the hosted version. Its prompt treats task text as data, requests concrete ordered actions and observable outputs, and forbids invented requirements. Authentication, owner-isolated task loading, stale-version checks, and an instance-local rate limit run before generation. The rate limit is best-effort; a public production launch should add a shared quota store.
 
 ## Calculation rules
 

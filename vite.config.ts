@@ -1,7 +1,8 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { aiDevPlugin } from "./scripts/ai-dev";
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), aiDevPlugin()],
   server: { port: 5173, strictPort: true },
   build: {
     sourcemap: false,

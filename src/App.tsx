@@ -367,7 +367,7 @@ export default function App() {
     }
     setBusy(true);
     try {
-      const { steps, source } = await generateSteps(task);
+      const { steps, model } = await generateSteps(task, query.data.workspace.version);
       const updated = await saveBreakdown(
         task.id,
         steps,
@@ -375,9 +375,7 @@ export default function App() {
       );
       cache.setQueryData(["workspace", session.user.id], updated);
       setNotice(
-        source === "ai"
-          ? `AI breakdown added ${steps.length} steps to ${task.title}.`
-          : `${steps.length} suggested steps added to ${task.title}. Deploy the breakdown function to enable AI-generated steps.`,
+        `Gemini generated ${steps.length} steps for ${task.title}. Model: ${model}.`,
       );
       return true;
     } catch (error) {

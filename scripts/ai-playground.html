@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Headroom · AI breakdown playground</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #f5f7fb;
+        color: #212529;
+        font:
+          16px/1.6 system-ui,
+          sans-serif;
+      }
+      main {
+        max-width: 1000px;
+        margin: auto;
+        padding: 35px 24px;
+      }
+      a {
+        color: #000054;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: center;
+      }
+      .logo {
+        font-size: 23px;
+        font-weight: 750;
+        color: #000054;
+      }
+      h1 {
+        font-size: 30px;
+        line-height: 1.25;
+        color: #000054;
+        margin: 25px 0 10px;
+      }
+      h2 {
+        font-size: 19px;
+        margin: 0 0 15px;
+      }
+      p {
+        margin: 8px 0;
+      }
+      .muted {
+        color: #5b6270;
+      }
+      .status {
+        background: #e8eff9;
+        border: 1px solid #c9d3e0;
+        padding: 15px 18px;
+        border-radius: 10px;
+        margin: 22px 0;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 22px;
+      }
+      .card {
+        background: #fff;
+        border: 1px solid #dfe5ef;
+        border-radius: 13px;
+        padding: 24px;
+      }
+      label {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 15px;
+      }
+      input,
+      textarea,
+      select {
+        font: inherit;
+        display: block;
+        width: 100%;
+        border: 1px solid #c9d3e0;
+        border-radius: 7px;
+        background: white;
+        padding: 10px;
+        margin-top: 6px;
+        color: #212529;
+      }
+      textarea {
+        resize: vertical;
+      }
+      button {
+        font: inherit;
+        cursor: pointer;
+        border: 0;
+        border-radius: 8px;
+        padding: 11px 17px;
+        background: #000054;
+        color: white;
+      }
+      button:disabled {
+        opacity: 0.55;
+        cursor: wait;
+      }
+      .secondary {
+        background: #edf1f8;
+        color: #000054;
+        border: 1px solid #c9d3e0;
+      }
+      .buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      pre {
+        font-size: 13px;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        background: #f1f4f9;
+        padding: 16px;
+        border-radius: 8px;
+        max-height: 420px;
+        overflow: auto;
+      }
+      .result-status {
+        font-weight: 600;
+        color: #00664f;
+      }
+      .error {
+        color: #a81629;
+      }
+      .small {
+        font-size: 13px;
+      }
+      .steps {
+        padding-left: 22px;
+      }
+      .steps li {
+        margin-bottom: 13px;
+      }
+      code {
+        font-size: 13px;
+        overflow-wrap: anywhere;
+      }
+      :focus-visible {
+        outline: 3px solid #14daac;
+        outline-offset: 3px;
+      }
+      @media (max-width: 750px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        main {
+          padding: 22px 16px;
+        }
+        header {
+          flex-wrap: wrap;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <span class="logo">headroom.</span
+        ><a href="/employee/tasks">Back to My tasks</a>
+      </header>
+      <h1>AI breakdown playground</h1>
+      <p class="muted">
+        Try a task without sign-in or database changes. Real generation sends
+        only the task fields below to Gemini.
+      </p>
+      <div class="status" id="config" role="status">
+        Checking local configuration…
+      </div>
+      <div class="layout">
+        <form class="card" id="form">
+          <h2>Task context</h2>
+          <label
+            >Task title<input
+              name="title"
+              maxlength="250"
+              required
+              value="Competitor research for the client pitch" /></label
+          ><label
+            >Description<textarea name="description" rows="5" maxlength="6000">
+Compare three competitors' pricing pages and onboarding flows. Collect screenshots and write a concise summary of opportunities for our client pitch.</textarea></label
+          ><label
+            >Category<select name="category">
+              <option>Research</option>
+              <option>Presentation</option>
+              <option>Testing</option>
+              <option>Analytics</option>
+              <option>Design</option>
+              <option>General</option>
+            </select></label
+          ><label
+            >Personalized estimate (hours)<input
+              name="hours"
+              type="number"
+              min="0.25"
+              max="64"
+              step="0.05"
+              required
+              value="7"
+          /></label>
+          <div class="buttons">
+            <button type="submit" id="real">Generate with Gemini</button
+            ><button type="button" id="simulate" class="secondary">
+              Simulate a test response
+            </button>
+          </div>
+          <p class="small muted">
+            Simulation is not an LLM call and is labeled as such. Nothing here
+            is saved to Supabase.
+          </p>
+        </form>
+        <section class="card" aria-live="polite">
+          <h2>Generated checklist</h2>
+          <p id="result-status" class="muted">Your result will appear here.</p>
+          <ol id="steps" class="steps"></ol>
+          <details id="json-section" hidden>
+            <summary>Structured JSON response</summary>
+            <pre id="json"></pre>
+          </details>
+        </section>
+      </div>
+      <p class="small muted">
+        Setup: put your own key in <code>.env.server.local</code> as
+        <code>GEMINI_API_KEY=…</code>. The server reads it on each request;
+        there is no need to restart. Never put a key in a
+        <code>VITE_</code> variable or this page.
+      </p>
+      <p class="small">
+        <a
+          href="https://aistudio.google.com/apikey"
+          target="_blank"
+          rel="noopener noreferrer"
+          >Create your own Gemini API key</a
+        >
+        ·
+        <a
+          href="https://ai.google.dev/gemini-api/docs/pricing"
+          target="_blank"
+          rel="noopener noreferrer"
+          >Free-tier limits and data use</a
+        >
+      </p>
+    </main>
+    <script type="module">
+      const form = document.querySelector("#form"),
+        status = document.querySelector("#result-status"),
+        steps = document.querySelector("#steps"),
+        json = document.querySelector("#json"),
+        details = document.querySelector("#json-section"),
+        buttons = [...document.querySelectorAll("button")];
+      async function config() {
+        try {
+          const r = await fetch("/api/dev/ai-status");
+          const d = await r.json();
+          document.querySelector("#config").textContent = d.configured
+            ? `Real Gemini calls are ready · ${d.model}`
+            : `No Gemini key configured yet. Add it to .env.server.local, or use the explicitly simulated test below. Model: ${d.model}`;
+        } catch {
+          document.querySelector("#config").textContent =
+            "Start the Vite development server to use this local playground.";
+        }
+      }
+      async function generate(simulate) {
+        if (!form.reportValidity()) return;
+        buttons.forEach((b) => (b.disabled = true));
+        status.className = "muted";
+        status.textContent = simulate
+          ? "Preparing a simulated test response…"
+          : "Calling Gemini with this task context…";
+        steps.replaceChildren();
+        details.hidden = true;
+        const fields = new FormData(form);
+        try {
+          const response = await fetch("/api/dev/ai-playground", {
+            method: "POST",
+            signal: AbortSignal.timeout(65000),
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              simulate,
+              task: {
+                title: fields.get("title"),
+                description: fields.get("description"),
+                category: fields.get("category"),
+                personalized_hours: Number(fields.get("hours")),
+              },
+            }),
+          });
+          const d = await response.json();
+          if (!response.ok) throw Error(d.error ?? "Generation failed.");
+          status.className = "result-status";
+          status.textContent =
+            d.source === "mock"
+              ? `SIMULATED — no LLM call · ${d.total_minutes} minutes`
+              : `Generated live by Gemini · ${d.model} · ${d.total_minutes} minutes`;
+          for (const step of d.steps) {
+            const li = document.createElement("li");
+            li.textContent = `${step.title} — ${step.minutes} min`;
+            steps.append(li);
+          }
+          json.textContent = JSON.stringify(d, null, 2);
+          details.hidden = false;
+        } catch (e) {
+          status.className = "error";
+          status.textContent = e.message;
+        } finally {
+          buttons.forEach((b) => (b.disabled = false));
+          await config();
+        }
+      }
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        void generate(false);
+      });
+      document
+        .querySelector("#simulate")
+        .addEventListener("click", () => generate(true));
+      void config();
+    </script>
+  </body>
+</html>
