@@ -599,12 +599,19 @@ export default function App() {
     const timer = setTimeout(() => setNotice(""), notice.undo ? 12000 : 7000);
     return () => clearTimeout(timer);
   }, [notice]);
+  // Undo closures are created before their action completes, so they must
+  // read the workspace version at call time, not the one they captured.
+  const latest = useRef(query.data);
+  latest.current = query.data;
   const run: Run = async (op, payload = {}, message, undo) => {
     if (!session) {
       navigate("/sign-in");
       return false;
     }
-    if (!query.data) {
+    const current =
+      cache.getQueryData<AppState>(["workspace", session.user.id]) ??
+      latest.current;
+    if (!current) {
       setNotice("The workspace is still loading. Please try again.", "error");
       return false;
     }
@@ -613,7 +620,7 @@ export default function App() {
       const updated = await action(
         op,
         { ...payload, role },
-        query.data.workspace.version,
+        current.workspace.version,
       );
       cache.setQueryData(["workspace", session.user.id], updated);
       if (op === "reset") localStorage.removeItem(DISMISSED_KEY);
@@ -671,7 +678,10 @@ export default function App() {
       const updated = await saveBreakdown(
         task.id,
         steps,
-        query.data.workspace.version,
+        (
+          cache.getQueryData<AppState>(["workspace", session.user.id]) ??
+          query.data
+        ).workspace.version,
       );
       cache.setQueryData(["workspace", session.user.id], updated);
       setAi({ taskId: task.id, phase: "done" });
