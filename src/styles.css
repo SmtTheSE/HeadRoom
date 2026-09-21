@@ -479,36 +479,6 @@ textarea:focus-visible {
   font-size: 15px;
   color: var(--muted);
 }
-.page-heading.current {
-  display: block;
-}
-.task-pair {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px 40px;
-  margin-top: 6px;
-}
-.task-pair > div {
-  min-width: 0;
-}
-.task-pair h1 {
-  margin-top: 10px;
-  font-size: 30px;
-}
-.task-pair h1 a:hover {
-  text-decoration: underline;
-  text-decoration-color: var(--line-strong);
-  text-underline-offset: 4px;
-}
-.overline {
-  display: inline-block;
-  padding: 3px 9px;
-  border-radius: 999px;
-  background: var(--oat-strong);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--ink);
-}
 .section-head {
   display: flex;
   align-items: center;
@@ -907,6 +877,11 @@ textarea:focus-visible {
   margin-top: 2px;
   font-size: 13px;
   color: var(--muted);
+}
+.focus-item .badge {
+  display: inline-flex;
+  margin-left: 8px;
+  vertical-align: 1px;
 }
 .check-circle {
   display: flex;
@@ -1873,13 +1848,7 @@ td:last-child {
     flex-direction: column;
     margin-bottom: 22px;
   }
-  .task-pair {
-    grid-template-columns: 1fr;
-    gap: 18px;
-  }
-  .task-pair h1 {
-    font-size: 26px;
-  }
+
   .signin-top {
     padding: 16px;
   }

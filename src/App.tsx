@@ -943,34 +943,12 @@ function Dashboard({
     .slice(0, 3);
   const resolved =
     state.negotiations.some((n) => n.status === "approved") && load <= 30;
-  const current = focus[0],
-    parent = current && state.tasks.find((t) => t.id === current.task_id);
   return (
     <>
-      <div className="page-heading current">
-        <div>
-          <div className="eyebrow">
-            {greeting(now)}, {userName} · {longDate.format(now)} ·{" "}
-            {clock.format(now)}
-          </div>
-          <div className="task-pair">
-            <div>
-              <span className="overline">Current task</span>
-              <h1>{current ? current.title : "No open focus items"}</h1>
-            </div>
-            {current && parent && (
-              <div>
-                <span className="overline">Main task</span>
-                <h1>
-                  <Link to={`/employee/tasks/${parent.id}`}>
-                    {parent.title}
-                  </Link>
-                </h1>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      <PageHeading
+        eyebrow={`${longDate.format(now)} · ${clock.format(now)}`}
+        title={`${greeting(now)}, ${userName}.`}
+      />
       <TaskInbox state={state} busy={busy} run={run} />
       {resolved && (
         <div className="banner success">
@@ -1027,10 +1005,24 @@ function Dashboard({
                   <Check size={16} />
                 </button>
                 <Link to={`/employee/tasks/${s.task_id}`}>
-                  <strong>{s.title}</strong>
+                  <strong>
+                    {s.title}
+                    {i === 0 && (
+                      <span className="badge good">Current task</span>
+                    )}
+                  </strong>
                   <span>
-                    Main task:{" "}
-                    {state.tasks.find((t) => t.id === s.task_id)?.title}
+                    {i === 0 ? (
+                      <>
+                        {state.tasks.find((t) => t.id === s.task_id)?.title}
+                        <span className="badge blue">Main task</span>
+                      </>
+                    ) : (
+                      <>
+                        Main task:{" "}
+                        {state.tasks.find((t) => t.id === s.task_id)?.title}
+                      </>
+                    )}
                   </span>
                 </Link>
                 <span className="time-pill">
