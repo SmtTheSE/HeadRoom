@@ -17,7 +17,7 @@ Open `http://127.0.0.1:5173`. Unsigned visitors can explore a read-only sample. 
 
 ## Supabase setup
 
-1. Run `supabase/migrations/001_headroom.sql` in the Supabase SQL Editor. It creates only `hr_*` tables and `hr_*` / `headroom_*` functions, with owner-isolated row-level security. Existing unrelated project data is untouched.
+1. Run each file in `supabase/migrations/` (in order) in the Supabase SQL Editor. It creates only `hr_*` tables and `hr_*` / `headroom_*` functions, with owner-isolated row-level security. Existing unrelated project data is untouched.
 2. Enable the Google provider under Authentication → Sign In / Providers, with your Google OAuth client credentials.
 3. In Google Cloud, the authorized redirect URI is `https://ptdgrejkeaamfqkbxepf.supabase.co/auth/v1/callback` for this project.
 4. In Supabase Authentication → URL Configuration, allow:
@@ -35,7 +35,7 @@ The prototype intentionally uses the fixed week of September 21, 2026, with Wedn
 
 1. Sign in with Google. Alex starts at **28 / 30h**.
 2. Review My Tasks and My Capacity to see subtasks and historical learning.
-3. Click **Add demo assignment**. Workload becomes **35 / 30h**.
+3. A **Potential New Task** notification from Microsoft Teams sits at the top of the overview. Expand it to read the message, then click ✓ to confirm it is a task. Workload becomes **35 / 30h**. (✕ removes it as not a task.)
 4. Choose **Resolve workload → Move Analytics Report to next Monday**.
 5. Edit the message if desired and send it to Sarah. Workload stays at 35h while pending.
 6. Switch to **Manager** and open Alex's request.
@@ -54,6 +54,19 @@ The app supports updates across tabs with a Realtime workspace-version subscript
 - Deadline, scope, and reassignment previews; server-validated transactional approval.
 - Stale version detection, duplicate approval protection, and cross-tab refresh.
 - Keyboard-friendly native dialogs, visible focus, responsive layouts, loading and error states.
+
+## AI breakdown
+
+Tasks without steps show an **AI breakdown** button (task list and task detail). It asks the `breakdown` Edge Function for 3–6 steps sized to the task's personalized estimate, then stores them through `headroom_breakdown()`, which validates the steps and bumps the task and workspace versions. If the function is not deployed, an offline category planner supplies the steps and the toast says so.
+
+To enable Claude-generated steps:
+
+```sh
+supabase functions deploy breakdown
+supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
+```
+
+The API key lives only in the Edge Function's secrets; the browser never sees it.
 
 ## Calculation rules
 
@@ -75,4 +88,4 @@ npm run build
 
 `npm run test:live` is an optional live integration check requiring `SUPABASE_SERVICE_ROLE_KEY` in the ignored `.env.setup`. It creates one temporary email/password QA user without sending email, runs the database flow, and removes that user and its synthetic workspace in a cleanup block. It never impersonates a real account. Actual Google consent and redirect completion still require a human browser sign-in.
 
-No AI, meeting extraction, email/calendar access, messaging integrations, production role administration, or health-data storage is included.
+The only AI feature is the optional step breakdown above. No meeting extraction, email/calendar access, messaging integrations, production role administration, or health-data storage is included; the Teams notification is a scripted demo.

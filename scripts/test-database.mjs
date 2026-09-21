@@ -5,9 +5,10 @@ const db = new PGlite();
 await db.exec(
   `create role anon; create role authenticated; create schema auth; create table auth.users(id uuid primary key); create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$; grant usage on schema auth to authenticated,anon; grant execute on function auth.uid() to authenticated,anon;`,
 );
-await db.exec(
-  await fs.readFile("supabase/migrations/001_headroom.sql", "utf8"),
-);
+for (const file of (await fs.readdir("supabase/migrations"))
+  .filter((x) => x.endsWith(".sql"))
+  .sort())
+  await db.exec(await fs.readFile(`supabase/migrations/${file}`, "utf8"));
 const user = "11111111-1111-4111-8111-111111111111",
   other = "22222222-2222-4222-8222-222222222222";
 await db.query("insert into auth.users(id) values($1),($2)", [user, other]);
@@ -140,6 +141,57 @@ await assert.rejects(
   db.query("select public.hr_seed($1)", [s.workspace.id]),
   /permission denied/,
 );
+// AI breakdown persists validated steps for a task that has none.
+async function breakdown(taskId, steps, version = s.workspace.version) {
+  const r = await db.query(
+    "select public.headroom_breakdown($1,$2,$3) as state",
+    [taskId, JSON.stringify(steps), version],
+  );
+  s = r.rows[0].state;
+  return s;
+}
+const stepsFor = (id) => s.subtasks.filter((x) => x.task_id === id);
+assert.equal(stepsFor("analytics").length, 0);
+await assert.rejects(
+  breakdown("analytics", [{ title: "Only one", minutes: 30 }]),
+  /between 2 and 8/,
+);
+await assert.rejects(
+  breakdown("analytics", [
+    { title: "Fine", minutes: 30 },
+    { title: "", minutes: 30 },
+  ]),
+  /title and between 5 and 480/,
+);
+await breakdown("analytics", [
+  { title: "Collect the data", minutes: 90 },
+  { title: "Clean and analyze", minutes: 120 },
+  { title: "Write the report", minutes: 60 },
+]);
+assert.equal(stepsFor("analytics").length, 3);
+assert.deepEqual(
+  stepsFor("analytics").map((x) => x.position),
+  [1, 2, 3],
+);
+await assert.rejects(
+  breakdown("analytics", [
+    { title: "Again", minutes: 30 },
+    { title: "Again", minutes: 30 },
+  ]),
+  /already has steps/,
+);
+await assert.rejects(
+  breakdown("presentation", [
+    { title: "Has steps", minutes: 30 },
+    { title: "Has steps", minutes: 30 },
+  ]),
+  /already has steps/,
+);
+await act("subtask", { id: stepsFor("analytics")[0].id });
+assert.equal(stepsFor("analytics")[0].completed, true);
+console.log(
+  "PASS: AI breakdown validates, stores ordered steps once, and steps are tickable",
+);
 const firstWorkspace = s.workspace.id;
 await db.exec("reset role");
 await db.query("select set_config('request.jwt.claim.sub',$1,false)", [other]);
@@ -159,6 +211,10 @@ await db.exec("reset role");
 await db.query("select set_config('request.jwt.claim.sub','',false)");
 await db.exec("set role anon");
 await assert.rejects(get(), /permission denied/);
+await assert.rejects(
+  db.query("select public.headroom_breakdown('analytics','[]'::jsonb,1)"),
+  /permission denied/,
+);
 console.log(
   "PASS: direct writes blocked; helper RPCs blocked; RLS isolates users; anonymous requests blocked",
 );

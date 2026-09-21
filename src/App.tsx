@@ -15,6 +15,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
+  ChevronDown,
   Gauge,
   LayoutDashboard,
   ListTodo,
@@ -25,7 +26,13 @@ import {
   RotateCcw,
   X,
 } from "lucide-react";
-import { action, loadState, supabase } from "./data";
+import {
+  action,
+  breakdown as saveBreakdown,
+  loadState,
+  supabase,
+} from "./data";
+import { generateSteps } from "./breakdown";
 import { previewState } from "./seed";
 import {
   active,
@@ -43,13 +50,10 @@ import {
 import type { AppState, Negotiation, Proposal, Role, Task } from "./types";
 
 type Run = (op: string, payload?: Record<string, unknown>) => Promise<boolean>;
+type Breakdown = (task: Task) => Promise<boolean>;
 function Badge({ load, capacity }: { load: number; capacity: number }) {
   const s = status(load, capacity);
-  return (
-    <span className={`badge ${s.tone}`}>
-      {s.label}
-    </span>
-  );
+  return <span className={`badge ${s.tone}`}>{s.label}</span>;
 }
 /** Structured description of a proposal: which task, what changes, from → to. */
 function describeProposal(state: AppState, p: Proposal) {
@@ -81,7 +85,13 @@ function proposalTitle(state: AppState, p: Proposal) {
   const d = describeProposal(state, p);
   return `${d.title} · ${d.change}: ${d.from} → ${d.to}`;
 }
-function ProposalTitle({ state, proposal }: { state: AppState; proposal: Proposal }) {
+function ProposalTitle({
+  state,
+  proposal,
+}: {
+  state: AppState;
+  proposal: Proposal;
+}) {
   const d = describeProposal(state, proposal);
   return (
     <span className="proposal-title">
@@ -120,7 +130,24 @@ function Segmented<T extends string>({
     </div>
   );
 }
-function Avatar({ name, large = false }: { name: string; large?: boolean }) {
+function Avatar({
+  name,
+  large = false,
+  src,
+}: {
+  name: string;
+  large?: boolean;
+  src?: string;
+}) {
+  if (src)
+    return (
+      <img
+        className={`avatar ${large ? "large" : ""}`}
+        src={src}
+        alt=""
+        referrerPolicy="no-referrer"
+      />
+    );
   return (
     <span
       className={`avatar ${large ? "large" : ""} avatar-${name.split(" ")[0].toLowerCase()}`}
@@ -303,6 +330,7 @@ export default function App() {
         query.data.workspace.version,
       );
       cache.setQueryData(["workspace", session.user.id], updated);
+      if (op === "reset") localStorage.removeItem(DISMISSED_KEY);
       setNotice(
         op === "request"
           ? "Your request is with Sarah."
@@ -318,6 +346,46 @@ export default function App() {
         error instanceof Error
           ? error.message
           : "We could not save that. Try again.",
+        "error",
+      );
+      void query.refetch();
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
+  const runBreakdown: Breakdown = async (task) => {
+    if (!session) {
+      navigate("/sign-in");
+      return false;
+    }
+    if (!query.data) {
+      setNotice(
+        "Your workspace is not ready yet. Please retry loading it.",
+        "error",
+      );
+      return false;
+    }
+    setBusy(true);
+    try {
+      const { steps, source } = await generateSteps(task);
+      const updated = await saveBreakdown(
+        task.id,
+        steps,
+        query.data.workspace.version,
+      );
+      cache.setQueryData(["workspace", session.user.id], updated);
+      setNotice(
+        source === "ai"
+          ? `AI breakdown added ${steps.length} steps to ${task.title}.`
+          : `Added ${steps.length} suggested steps to ${task.title}. Deploy the breakdown function for AI-generated steps.`,
+      );
+      return true;
+    } catch (error) {
+      setNotice(
+        error instanceof Error
+          ? error.message
+          : "We could not break that task down.",
         "error",
       );
       void query.refetch();
@@ -406,13 +474,49 @@ export default function App() {
           </NavLink>
         </nav>
         <div className="sidebar-bottom">
-          <div className="profile-mini">
-            <Avatar name={p.name} />
-            <div>
-              <strong>{p.name}</strong>
-              <small>{p.job_title}</small>
+          {session ? (
+            <div className="profile-mini">
+              <Avatar
+                name={
+                  session.user.user_metadata.full_name ??
+                  session.user.user_metadata.name ??
+                  session.user.email ??
+                  "?"
+                }
+                src={
+                  session.user.user_metadata.avatar_url ??
+                  session.user.user_metadata.picture
+                }
+              />
+              <div>
+                <strong>
+                  {session.user.user_metadata.full_name ??
+                    session.user.user_metadata.name ??
+                    session.user.email}
+                </strong>
+                <small>{session.user.email}</small>
+                <small>
+                  Viewing as {p.name} · {p.job_title}
+                </small>
+              </div>
+              <button
+                className="icon-btn"
+                onClick={signOut}
+                aria-label="Sign out"
+                title="Sign out"
+              >
+                <LogOut size={17} />
+              </button>
             </div>
-          </div>
+          ) : (
+            <div className="profile-mini">
+              <Avatar name={p.name} />
+              <div>
+                <strong>{p.name}</strong>
+                <small>{p.job_title} · sample</small>
+              </div>
+            </div>
+          )}
         </div>
       </aside>
       <div className="workspace">
@@ -442,16 +546,7 @@ export default function App() {
               <RotateCcw size={15} />
               <span>Reset demo</span>
             </button>
-            {session ? (
-              <button
-                className="icon-btn"
-                onClick={signOut}
-                aria-label="Sign out"
-                title={`Signed in as ${session.user.email}`}
-              >
-                <LogOut size={18} />
-              </button>
-            ) : (
+            {!session && (
               <Link className="btn primary" to="/sign-in">
                 Sign in
               </Link>
@@ -491,11 +586,24 @@ export default function App() {
               />
               <Route
                 path="/employee/tasks"
-                element={<TasksPage state={state} />}
+                element={
+                  <TasksPage
+                    state={state}
+                    busy={busy}
+                    onBreakdown={runBreakdown}
+                  />
+                }
               />
               <Route
                 path="/employee/tasks/:id"
-                element={<TaskDetail state={state} busy={busy} run={run} />}
+                element={
+                  <TaskDetail
+                    state={state}
+                    busy={busy}
+                    run={run}
+                    onBreakdown={runBreakdown}
+                  />
+                }
               />
               <Route
                 path="/employee/capacity"
@@ -632,8 +740,8 @@ function SignInPage({
             </Link>
             <p className="fine-print">
               By continuing, you get a private demo workspace with synthetic
-              data. Google is used for sign-in only — no access to your email
-              or calendar.
+              data. Google is used for sign-in only — no access to your email or
+              calendar.
             </p>
           </div>
           <p className="signin-foot">
@@ -729,9 +837,7 @@ function CapacityCard({
   return (
     <section className="capacity-hero" aria-label="This week’s workload">
       <div className="capacity-figure">
-        <span className="capacity-label">
-          This week
-        </span>
+        <span className="capacity-label">This week</span>
         <div className="capacity-number">
           {hours(load)}
           <span> / {p.capacity}h</span>
@@ -778,8 +884,6 @@ function Dashboard({
   resolve: () => void;
 }) {
   const load = workload(state.tasks),
-    draft =
-      state.tasks.find((t) => t.id === "new-research")?.status === "draft",
     open = state.negotiations.find((n) =>
       ["pending", "counter_proposed"].includes(n.status),
     );
@@ -799,6 +903,7 @@ function Dashboard({
     state.negotiations.some((n) => n.status === "approved") && load <= 30;
   return (
     <>
+      <TaskInbox state={state} busy={busy} run={run} />
       <PageHeading
         eyebrow="Wednesday, September 23 · Week of Sep 21 – 27"
         title="Good morning, Alex."
@@ -915,35 +1020,166 @@ function Dashboard({
           </table>
         </div>
       </section>
-      <section className="section demo-row">
-        <div>
-          <span className="eyebrow">Demo scenario</span>
-          <h3>
-            {draft
-              ? "A new request just came in."
-              : "The new request is on your board."}
-          </h3>
-          <p className="muted">Client Competitor Research · 7h</p>
-        </div>
-        <button
-          className="btn secondary"
-          disabled={busy || !draft}
-          onClick={() => run("activate")}
-        >
-          {draft ? <Plus size={16} /> : <Check size={16} />}
-          {draft ? "Add demo assignment" : "Assignment added"}
-        </button>
-      </section>
     </>
   );
 }
-function TaskRow({ task, state }: { task: Task; state: AppState }) {
-  const subs = state.subtasks.filter((s) => s.task_id === task.id),
-    done = subs.filter((s) => s.completed).length;
+/* Demo feed: messages assigned in Microsoft Teams that Headroom detected as
+   potential tasks. Keyed by the draft task they would create. */
+const TEAMS_MESSAGES: Record<
+  string,
+  { from: string; channel: string; time: string; text: string }
+> = {
+  "new-research": {
+    from: "Sarah Lee",
+    channel: "Design team",
+    time: "9:12 AM",
+    text: "Hi Alex, could you put together a competitor research summary for the client pitch? Focus on the three main competitors’ pricing pages and onboarding flows, and pull a few screenshots we can drop into the deck. Thursday morning would be ideal so we have time to review before the call. Thanks!",
+  },
+};
+const DISMISSED_KEY = "headroom.dismissed";
+function readDismissed(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(DISMISSED_KEY) ?? "[]");
+  } catch {
+    return [];
+  }
+}
+function preview(text: string, words = 10) {
+  const parts = text.split(/\s+/);
+  return parts.length <= words ? text : parts.slice(0, words).join(" ") + "…";
+}
+function TaskInbox({
+  state,
+  busy,
+  run,
+}: {
+  state: AppState;
+  busy: boolean;
+  run: Run;
+}) {
+  const [dismissed, setDismissed] = useState<string[]>(readDismissed);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const drafts = state.tasks.filter(
+    (t) =>
+      t.employee_id === "alex" &&
+      t.status === "draft" &&
+      !dismissed.includes(t.id),
+  );
+  if (!drafts.length) return null;
+  const dismiss = (id: string) => {
+    const next = [...dismissed, id];
+    setDismissed(next);
+    localStorage.setItem(DISMISSED_KEY, JSON.stringify(next));
+  };
   return (
-    <Link className="task-row" to={`/employee/tasks/${task.id}`}>
+    <div className="inbox" aria-label="Potential new tasks">
+      {drafts.map((t) => {
+        const m = TEAMS_MESSAGES[t.id] ?? {
+          from: "Sarah Lee",
+          channel: "Design team",
+          time: "",
+          text: t.description,
+        };
+        const expanded = openId === t.id;
+        return (
+          <section className="inbox-item" key={t.id}>
+            <div className="inbox-main">
+              <span className="inbox-source">
+                Microsoft Teams · {m.from} in {m.channel}
+                {m.time && ` · ${m.time}`}
+              </span>
+              <strong>Potential New Task</strong>
+              <button
+                className="inbox-toggle"
+                aria-expanded={expanded}
+                aria-controls={`inbox-${t.id}`}
+                onClick={() => setOpenId(expanded ? null : t.id)}
+              >
+                <span>{expanded ? m.text : preview(m.text)}</span>
+                <ChevronDown size={16} />
+              </button>
+              {expanded && (
+                <p className="inbox-detail" id={`inbox-${t.id}`}>
+                  Would add <b>{t.title}</b> · {hours(t.personalized_hours)}h
+                  personalized estimate · due {due(t.deadline, true)}
+                </p>
+              )}
+            </div>
+            <div className="inbox-side">
+              <TeamsMark />
+              <div className="inbox-actions">
+                <button
+                  className="inbox-yes"
+                  aria-label={`Confirm ${t.title} is a task`}
+                  title="This is a task"
+                  disabled={busy}
+                  onClick={() => run("activate", { id: t.id })}
+                >
+                  <Check size={18} />
+                </button>
+                <button
+                  className="inbox-no"
+                  aria-label={`Remove ${t.title}, not a task`}
+                  title="Not a task"
+                  disabled={busy}
+                  onClick={() => dismiss(t.id)}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+/** Simplified Microsoft Teams mark: purple tile with a T and two heads. */
+function TeamsMark() {
+  return (
+    <svg
+      className="inbox-logo"
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      role="img"
+      aria-label="Microsoft Teams"
+    >
+      <circle cx="18.5" cy="6.5" r="2.5" fill="#7B83EB" />
+      <path
+        d="M15.5 10h5.3c.7 0 1.2.5 1.2 1.2v4.6a4 4 0 0 1-4 4h-.3a4.4 4.4 0 0 1-2.2-.6V10Z"
+        fill="#7B83EB"
+      />
+      <circle cx="12.5" cy="5.5" r="3" fill="#5059C9" />
+      <path
+        d="M8 9.5h9.2c.7 0 1.3.6 1.3 1.3v5.7a5.5 5.5 0 0 1-5.5 5.5h-.1A5.4 5.4 0 0 1 8 17.4V9.5Z"
+        fill="#5059C9"
+      />
+      <rect x="1" y="6" width="12" height="12" rx="2.2" fill="#4B53BC" />
+      <path d="M4.2 9.6h5.6v1.6H7.9v5.2H6.1v-5.2H4.2V9.6Z" fill="#fff" />
+    </svg>
+  );
+}
+function TaskRow({
+  task,
+  state,
+  busy,
+  onBreakdown,
+}: {
+  task: Task;
+  state: AppState;
+  busy: boolean;
+  onBreakdown: Breakdown;
+}) {
+  const subs = state.subtasks.filter((s) => s.task_id === task.id),
+    done = subs.filter((s) => s.completed).length,
+    needsSteps = !subs.length && active(task);
+  return (
+    <div className="task-row">
       <div className="task-main">
-        <strong>{task.title}</strong>
+        <Link className="task-link" to={`/employee/tasks/${task.id}`}>
+          <strong>{task.title}</strong>
+        </Link>
         <span>
           {task.category} <span className="bullet">·</span> Due{" "}
           {due(task.deadline, true)}
@@ -962,22 +1198,32 @@ function TaskRow({ task, state }: { task: Task; state: AppState }) {
         <small>{hours(task.estimated_hours)}h original estimate</small>
       </div>
       <div className="task-progress">
-        <span>
-          {task.status === "completed"
-            ? "Completed"
-            : subs.length
-              ? `${done} / ${subs.length} steps`
-              : "Not started"}
-        </span>
-        <div className="mini-progress">
-          <span
-            style={{
-              width: `${task.status === "completed" ? 100 : subs.length ? (done / subs.length) * 100 : 0}%`,
-            }}
-          />
-        </div>
+        {needsSteps ? (
+          <button
+            className="btn secondary breakdown-btn"
+            disabled={busy}
+            onClick={() => onBreakdown(task)}
+          >
+            AI breakdown
+          </button>
+        ) : (
+          <>
+            <span>
+              {task.status === "completed"
+                ? "Completed"
+                : `${done} / ${subs.length} steps`}
+            </span>
+            <div className="mini-progress">
+              <span
+                style={{
+                  width: `${task.status === "completed" ? 100 : subs.length ? (done / subs.length) * 100 : 0}%`,
+                }}
+              />
+            </div>
+          </>
+        )}
       </div>
-    </Link>
+    </div>
   );
 }
 const TASK_FILTERS = [
@@ -987,7 +1233,15 @@ const TASK_FILTERS = [
   "At Risk",
   "Completed",
 ] as const;
-function TasksPage({ state }: { state: AppState }) {
+function TasksPage({
+  state,
+  busy,
+  onBreakdown,
+}: {
+  state: AppState;
+  busy: boolean;
+  onBreakdown: Breakdown;
+}) {
   const [filter, setFilter] = useState<(typeof TASK_FILTERS)[number]>("All");
   const tasks = state.tasks
     .filter(
@@ -1021,7 +1275,15 @@ function TasksPage({ state }: { state: AppState }) {
       />
       <div className="task-list">
         {tasks.length ? (
-          tasks.map((t) => <TaskRow key={t.id} task={t} state={state} />)
+          tasks.map((t) => (
+            <TaskRow
+              key={t.id}
+              task={t}
+              state={state}
+              busy={busy}
+              onBreakdown={onBreakdown}
+            />
+          ))
         ) : (
           <div className="empty">
             <h3>Nothing here right now.</h3>
@@ -1036,10 +1298,12 @@ function TaskDetail({
   state,
   busy,
   run,
+  onBreakdown,
 }: {
   state: AppState;
   busy: boolean;
   run: Run;
+  onBreakdown: Breakdown;
 }) {
   const { id } = useParams(),
     task = state.tasks.find(
@@ -1100,9 +1364,21 @@ function TaskDetail({
       <section className="section">
         <div className="section-head">
           <h2>Your next steps</h2>
-          <span className="muted">
-            {subs.filter((s) => s.completed).length} / {subs.length} complete
-          </span>
+          {subs.length ? (
+            <span className="muted">
+              {subs.filter((s) => s.completed).length} / {subs.length} complete
+            </span>
+          ) : (
+            !disabled && (
+              <button
+                className="btn secondary"
+                disabled={busy}
+                onClick={() => onBreakdown(task)}
+              >
+                AI breakdown
+              </button>
+            )
+          )}
         </div>
         <div className="subtask-list">
           {subs.length ? (
@@ -1120,8 +1396,8 @@ function TaskDetail({
             ))
           ) : (
             <p className="muted">
-              This task is ready to work on. Record your time below when you’re
-              ready.
+              No steps yet. Use AI breakdown to split this task into smaller
+              steps, or record your time below when you’re ready.
             </p>
           )}
         </div>
@@ -1472,7 +1748,9 @@ function ManagerDashboard({ state }: { state: AppState }) {
         {state.negotiations.length ? (
           state.negotiations
             .slice(0, 3)
-            .map((n) => <RequestRow key={n.id} n={n} role="manager" state={state} />)
+            .map((n) => (
+              <RequestRow key={n.id} n={n} role="manager" state={state} />
+            ))
         ) : (
           <p className="muted">
             No requests yet. New conversations will appear here.
@@ -1525,7 +1803,9 @@ function EmployeeDetail({ state }: { state: AppState }) {
       <section className="section">
         <h2>Shared workload requests</h2>
         {requests.length ? (
-          requests.map((n) => <RequestRow key={n.id} n={n} role="manager" state={state} />)
+          requests.map((n) => (
+            <RequestRow key={n.id} n={n} role="manager" state={state} />
+          ))
         ) : (
           <p className="muted">No requests for this teammate.</p>
         )}
@@ -1599,7 +1879,9 @@ function Requests({
       />
       <div className="request-list">
         {list.length ? (
-          list.map((n) => <RequestRow key={n.id} n={n} role={role} state={state} />)
+          list.map((n) => (
+            <RequestRow key={n.id} n={n} role={role} state={state} />
+          ))
         ) : (
           <div className="empty">
             <h3>A little conversation can make room.</h3>

@@ -264,6 +264,28 @@ strong {
   padding: 16px 8px 0;
   border-top: 1px solid var(--line-strong);
 }
+.profile-mini > div {
+  flex: 1;
+  min-width: 0;
+}
+.profile-mini .icon-btn {
+  width: 30px;
+  height: 30px;
+  margin-right: -6px;
+}
+img.avatar {
+  object-fit: cover;
+}
+.profile-mini strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.profile-mini small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .profile-mini strong {
   display: block;
   font-size: 14px;
@@ -481,15 +503,6 @@ textarea:focus-visible {
 .section-head + * {
   margin-top: 8px;
 }
-.demo-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-}
-.demo-row .eyebrow {
-  margin-bottom: 4px;
-}
 .meta-strip {
   display: flex;
   flex-wrap: wrap;
@@ -611,6 +624,116 @@ textarea:focus-visible {
 .capacity-link:hover {
   background: rgb(255 255 255 / 0.1);
   color: #fff;
+}
+
+/* task inbox: potential tasks detected from Teams, shown above the greeting */
+.inbox {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+.inbox-item {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--line-strong);
+  border-left: 3px solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.inbox-main {
+  flex: 1;
+  min-width: 0;
+}
+.inbox-source {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+}
+.inbox-main > strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 15px;
+  color: var(--ink);
+}
+.inbox-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  margin-top: 6px;
+  text-align: left;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text);
+}
+.inbox-toggle > span {
+  flex: 1;
+  min-width: 0;
+}
+.inbox-toggle > svg {
+  margin-top: 3px;
+  color: var(--muted);
+  transition: transform 0.15s;
+}
+.inbox-toggle[aria-expanded="true"] > svg {
+  transform: rotate(180deg);
+}
+.inbox-toggle:hover > svg {
+  color: var(--ink);
+}
+.inbox-detail {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--muted);
+}
+.inbox-detail b {
+  font-weight: 600;
+  color: var(--ink);
+}
+.inbox-side {
+  flex-shrink: 0;
+  padding-top: 32px;
+}
+.inbox-logo {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+}
+.inbox-actions {
+  display: flex;
+  gap: 8px;
+}
+.inbox-yes,
+.inbox-no {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--surface);
+  transition: background-color 0.15s, border-color 0.15s;
+}
+.inbox-yes {
+  color: var(--green-text);
+}
+.inbox-yes:hover:not(:disabled) {
+  background: var(--green-bg);
+  border-color: var(--green-text);
+}
+.inbox-no {
+  color: var(--red-text);
+}
+.inbox-no:hover:not(:disabled) {
+  background: var(--red-bg);
+  border-color: var(--red-text);
 }
 
 /* banners */
@@ -855,11 +978,27 @@ td:last-child {
 }
 
 .task-row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 16px;
   padding: 18px 0;
   border-bottom: 1px solid var(--line);
+}
+/* The title link stretches over the whole row; buttons sit above it. */
+.task-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+.task-row .btn {
+  position: relative;
+  z-index: 1;
+}
+.breakdown-btn {
+  padding: 7px 12px;
+  font-size: 13px;
+  white-space: nowrap;
 }
 .task-row:last-child {
   border-bottom: 0;
@@ -874,7 +1013,7 @@ td:last-child {
   font-weight: 500;
   color: var(--ink);
 }
-.task-row:hover .task-main strong {
+.task-row:hover .task-link strong {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -904,7 +1043,10 @@ td:last-child {
   color: var(--muted);
 }
 .task-progress {
-  width: 96px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 130px;
   font-size: 13px;
   color: var(--muted);
 }
@@ -1649,8 +1791,7 @@ td:last-child {
   main {
     padding: 28px 24px 56px;
   }
-  .team-meter,
-  .task-progress {
+  .team-meter {
     display: none;
   }
 }
@@ -1742,10 +1883,6 @@ td:last-child {
   .stats-row dd {
     font-size: 28px;
   }
-  .demo-row {
-    flex-direction: column;
-    align-items: flex-start;
-  }
   .team-row {
     flex-wrap: wrap;
     row-gap: 8px;
@@ -1757,6 +1894,18 @@ td:last-child {
     width: auto;
     margin-left: 48px;
   }
+  .inbox-item {
+    flex-wrap: wrap;
+  }
+  .inbox-main {
+    padding-right: 32px;
+  }
+  .inbox-side {
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+    padding-top: 0;
+  }
   .task-row {
     flex-wrap: wrap;
     gap: 10px;
@@ -1766,7 +1915,10 @@ td:last-child {
   }
   .task-estimate {
     width: auto;
-    padding-left: 42px;
+  }
+  .task-progress {
+    width: auto;
+    margin-left: auto;
   }
   .request-row {
     flex-wrap: wrap;

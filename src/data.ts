@@ -30,3 +30,16 @@ export async function action(
   if (error) throw new Error(error.message);
   return data as AppState;
 }
+export async function breakdown(
+  taskId: string,
+  steps: { title: string; minutes: number }[],
+  version: number,
+): Promise<AppState> {
+  const { data, error } = await supabase.rpc("headroom_breakdown", {
+    task_id: taskId,
+    steps,
+    expected_version: version,
+  });
+  if (error) throw new Error(error.message);
+  return data as AppState;
+}
