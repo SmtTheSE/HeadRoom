@@ -62,6 +62,26 @@ export function due(iso: string, short = false) {
     timeZone: "Asia/Bangkok",
   }).format(new Date(iso));
 }
+/** "Today", "Tomorrow", "Wed" within the week, otherwise "Wed, Sep 23". */
+export function dueRelative(iso: string, demoDate: string) {
+  const day = (d: Date) =>
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Bangkok",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(d);
+  const target = day(new Date(iso)),
+    today = new Date(demoDate + "T12:00:00+07:00"),
+    diff = Math.round(
+      (Date.parse(target + "T12:00:00+07:00") - today.getTime()) / 86400000,
+    );
+  if (diff < 0) return `${-diff} day${diff === -1 ? "" : "s"} overdue`;
+  if (diff === 0) return "Today";
+  if (diff === 1) return "Tomorrow";
+  if (diff < 7) return due(iso, true).split(",")[0];
+  return due(iso, true);
+}
 export function risk(task: Task, state: AppState) {
   if (!active(task)) return null;
   const now = Date.parse(state.workspace.demo_date + "T09:00:00+07:00"),

@@ -80,6 +80,10 @@ supabase functions deploy breakdown
 
 Optionally set `GEMINI_MODEL` to another compatible model. The hosted app calls this Edge Function; local configuration does not activate the hosted version. Its prompt treats task text as data, requests concrete ordered actions and observable outputs, and forbids invented requirements. Authentication, owner-isolated task loading, stale-version checks, and an instance-local rate limit run before generation. The rate limit is best-effort; a public production launch should add a shared quota store.
 
+## Focus mode
+
+Designed for ADHD: **Start** on any step opens a distraction-free page with only that step — no sidebar, no inbox, no upcoming work. A timer runs in 25-minute blocks, so a 2-hour step reads as "Block 1 of 5 · 12:04 / 25:00"; block ends and overruns are noted calmly, never in red. Pause/Resume and the elapsed time survive a refresh. **Done** records the step and shows a completion screen with the next step ready to start; **Skip to next** moves on without judgement. Elsewhere, ticking a step confirms what was done and names the next step, and due dates read as "Today", "Tomorrow", or the weekday.
+
 ## Accessibility
 
 Headroom targets WCAG 2.2 AA and is designed for people with ADHD first: one column per page, one clear next action, small time-boxed steps, plain language, and no decorative motion.

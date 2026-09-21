@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { previewState } from "./seed";
 import {
   applyPreview,
+  dueRelative,
   multiplier,
   recommendations,
   status,
@@ -72,5 +73,18 @@ describe("capacity planning", () => {
     const changed = applyPreview(previewState, p);
     expect(workload(changed, "alex")).toBe(23);
     expect(workload(changed, p.employee_id)).toBe(22);
+  });
+});
+
+describe("dueRelative", () => {
+  const today = "2026-09-23";
+  it("names today, tomorrow, weekdays, and dates", () => {
+    expect(dueRelative("2026-09-23T10:00:00+07:00", today)).toBe("Today");
+    expect(dueRelative("2026-09-24T10:00:00+07:00", today)).toBe("Tomorrow");
+    expect(dueRelative("2026-09-25T10:00:00+07:00", today)).toBe("Fri");
+    expect(dueRelative("2026-10-05T10:00:00+07:00", today)).toBe("Mon, Oct 5");
+    expect(dueRelative("2026-09-22T10:00:00+07:00", today)).toBe(
+      "1 day overdue",
+    );
   });
 });

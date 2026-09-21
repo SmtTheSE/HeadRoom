@@ -47,6 +47,7 @@ import {
   active,
   applyPreview,
   due,
+  dueRelative,
   hours,
   multiplier,
   person,
@@ -58,7 +59,11 @@ import {
 } from "./domain";
 import type { AppState, Negotiation, Proposal, Role, Task } from "./types";
 
-type Run = (op: string, payload?: Record<string, unknown>) => Promise<boolean>;
+type Run = (
+  op: string,
+  payload?: Record<string, unknown>,
+  message?: string,
+) => Promise<boolean>;
 type Breakdown = (task: Task) => Promise<boolean>;
 type AiState = { taskId: string; phase: "working" | "done" } | null;
 function Badge({ load, capacity }: { load: number; capacity: number }) {
@@ -210,9 +215,7 @@ function Modal({
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   // The element that opened the dialog, captured once at creation.
-  const [opener] = useState(
-    () => document.activeElement as HTMLElement | null,
-  );
+  const [opener] = useState(() => document.activeElement as HTMLElement | null);
   useEffect(() => {
     ref.current?.showModal();
     // Restore focus after the dialog node is gone; removing an open modal
@@ -318,21 +321,23 @@ export default function App() {
     const page =
       path === "/sign-in"
         ? "Sign in"
-        : path.includes("/capacity")
-          ? "My capacity"
-          : path.includes("/tasks/")
-            ? "Task"
-            : path.includes("/tasks")
-              ? "My tasks"
-              : path.includes("/negotiations/")
-                ? "Workload request"
-                : path.includes("/negotiations")
-                  ? "Workload requests"
-                  : path.includes("/employees/")
-                    ? "Team member"
-                    : path.startsWith("/manager")
-                      ? "Team overview"
-                      : "My overview";
+        : path.includes("/focus/")
+          ? "Focus"
+          : path.includes("/capacity")
+            ? "My capacity"
+            : path.includes("/tasks/")
+              ? "Task"
+              : path.includes("/tasks")
+                ? "My tasks"
+                : path.includes("/negotiations/")
+                  ? "Workload request"
+                  : path.includes("/negotiations")
+                    ? "Workload requests"
+                    : path.includes("/employees/")
+                      ? "Team member"
+                      : path.startsWith("/manager")
+                        ? "Team overview"
+                        : "My overview";
     document.title = `${page} · Headroom`;
   }, [location.pathname]);
   useEffect(() => {
@@ -372,7 +377,7 @@ export default function App() {
     const timer = setTimeout(() => setNotice(""), 9000);
     return () => clearTimeout(timer);
   }, [notice]);
-  const run: Run = async (op, payload = {}) => {
+  const run: Run = async (op, payload = {}, message) => {
     if (!session) {
       navigate("/sign-in");
       return false;
@@ -391,13 +396,14 @@ export default function App() {
       cache.setQueryData(["workspace", session.user.id], updated);
       if (op === "reset") localStorage.removeItem(DISMISSED_KEY);
       setNotice(
-        op === "request"
-          ? "Request sent to Sarah Lee for review."
-          : op === "approve" || op === "accept"
-            ? "Adjustment applied. Workload updated."
-            : op === "reset"
-              ? "Demo workspace reset to its starting state."
-              : "Changes saved.",
+        message ??
+          (op === "request"
+            ? "Request sent to Sarah Lee for review."
+            : op === "approve" || op === "accept"
+              ? "Adjustment applied. Workload updated."
+              : op === "reset"
+                ? "Demo workspace reset to its starting state."
+                : "Changes saved."),
       );
       return true;
     } catch (error) {
@@ -503,6 +509,18 @@ export default function App() {
     return (
       <>
         <SignInPage state={state} busy={busy || !ready} onGoogle={signIn} />
+        {toast}
+      </>
+    );
+  if (location.pathname.startsWith("/employee/focus/"))
+    return (
+      <>
+        <FocusPage
+          state={state}
+          busy={busy}
+          run={run}
+          stepId={location.pathname.split("/").pop() ?? ""}
+        />
         {toast}
       </>
     );
@@ -944,6 +962,238 @@ function firstName(session: Session | null, fallback: string) {
     session?.user.email;
   return (full ?? fallback).split(/[\s@]/)[0];
 }
+/* ---------- focus mode ---------- */
+const BLOCK_MIN = 25;
+const FOCUS_KEY = "headroom.focus";
+type FocusTimer = {
+  id: string;
+  startedAt: number;
+  accumulated: number;
+  pausedAt: number | null;
+};
+function readFocus(id: string): FocusTimer {
+  try {
+    const t = JSON.parse(
+      localStorage.getItem(FOCUS_KEY) ?? "null",
+    ) as FocusTimer | null;
+    if (t && t.id === id) return t;
+  } catch {
+    /* ignore */
+  }
+  return { id, startedAt: Date.now(), accumulated: 0, pausedAt: null };
+}
+function minutesLabel(minutes: number) {
+  return minutes >= 60 ? `${hours(minutes / 60)}h` : `${minutes} min`;
+}
+function clockLabel(ms: number) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(total / 60),
+    sec = total % 60;
+  return `${m}:${String(sec).padStart(2, "0")}`;
+}
+/** Toast text after ticking a step: what was done and what comes next. */
+function stepDoneMessage(
+  list: { id: string; title: string; completed: boolean; minutes: number }[],
+  id: string,
+) {
+  const step = list.find((x) => x.id === id);
+  if (!step || step.completed) return "Step reopened.";
+  const remaining = list.filter((x) => !x.completed && x.id !== id);
+  return remaining.length
+    ? `${step.title} done. Next: ${remaining[0].title} (${minutesLabel(remaining[0].minutes)}).`
+    : `${step.title} done. That was the last step.`;
+}
+function FocusPage({
+  state,
+  busy,
+  run,
+  stepId,
+}: {
+  state: AppState;
+  busy: boolean;
+  run: Run;
+  stepId: string;
+}) {
+  const navigate = useNavigate();
+  const step = state.subtasks.find((x) => x.id === stepId),
+    task = step && state.tasks.find((t) => t.id === step.task_id);
+  const queue = state.subtasks.filter(
+    (x) =>
+      !x.completed &&
+      state.tasks.some(
+        (t) => t.id === x.task_id && active(t) && t.employee_id === "alex",
+      ),
+  );
+  const next = queue.find((x) => x.id !== stepId);
+  const doneToday = state.subtasks.filter(
+    (x) => x.completed && task && x.task_id === task.id,
+  ).length;
+  const [timer, setTimer] = useState<FocusTimer>(() => readFocus(stepId));
+  const now = useTick(timer.pausedAt === null);
+  const [justDone, setJustDone] = useState(false);
+  useEffect(() => {
+    localStorage.setItem(FOCUS_KEY, JSON.stringify(timer));
+  }, [timer]);
+  if (!step || !task) return <NotFound />;
+  const elapsed =
+    timer.accumulated + (timer.pausedAt === null ? now - timer.startedAt : 0);
+  const blockMs = BLOCK_MIN * 60000,
+    plannedMs = step.minutes * 60000,
+    blocks = Math.max(1, Math.ceil(step.minutes / BLOCK_MIN)),
+    block = Math.min(blocks, Math.floor(elapsed / blockMs) + 1),
+    inBlock = elapsed - (block - 1) * blockMs,
+    blockEnd =
+      inBlock >= blockMs && block === blocks && elapsed < plannedMs + 1;
+  const over = elapsed > plannedMs;
+  const pause = () =>
+    setTimer((t) =>
+      t.pausedAt === null
+        ? {
+            ...t,
+            accumulated: t.accumulated + (Date.now() - t.startedAt),
+            pausedAt: Date.now(),
+          }
+        : { ...t, startedAt: Date.now(), pausedAt: null },
+    );
+  const finish = async () => {
+    if (
+      await run("subtask", { id: step.id }, stepDoneMessage(queue, step.id))
+    ) {
+      localStorage.removeItem(FOCUS_KEY);
+      setJustDone(true);
+    }
+  };
+  const startNext = (id: string) => {
+    localStorage.removeItem(FOCUS_KEY);
+    setJustDone(false);
+    setTimer({ id, startedAt: Date.now(), accumulated: 0, pausedAt: null });
+    navigate(`/employee/focus/${id}`);
+  };
+  if (step.completed || justDone)
+    return (
+      <div className="focus">
+        <header className="focus-top">
+          <Link to="/employee/dashboard">Exit focus</Link>
+        </header>
+        <main className="focus-main focus-done" id="main" tabIndex={-1}>
+          <span className="overline">Step complete</span>
+          <h1>{step.title}</h1>
+          <p className="focus-parent">
+            {doneToday} of{" "}
+            {doneToday + queue.filter((x) => x.task_id === task.id).length}{" "}
+            steps done on {task.title}
+          </p>
+          {next ? (
+            <div className="focus-next">
+              <span className="muted">Up next</span>
+              <strong>{next.title}</strong>
+              <span className="muted">
+                {state.tasks.find((t) => t.id === next.task_id)?.title} ·{" "}
+                {minutesLabel(next.minutes)}
+              </span>
+              <div className="focus-actions">
+                <button
+                  className="btn primary"
+                  onClick={() => startNext(next.id)}
+                >
+                  Start next step
+                </button>
+                <Link className="btn secondary" to="/employee/dashboard">
+                  Back to overview
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="focus-next">
+              <strong>No steps left today.</strong>
+              <div className="focus-actions">
+                <Link className="btn primary" to="/employee/dashboard">
+                  Back to overview
+                </Link>
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
+    );
+  return (
+    <div className="focus">
+      <header className="focus-top">
+        <Link to="/employee/dashboard">Exit focus</Link>
+        <span className="muted">
+          {queue.length - 1} more step{queue.length === 2 ? "" : "s"} after this
+        </span>
+      </header>
+      <main className="focus-main" id="main" tabIndex={-1}>
+        <p className="focus-parent">
+          <span className="current-label">Main task:</span>
+          <Link to={`/employee/tasks/${task.id}`}>{task.title}</Link>
+          <span className="bullet" aria-hidden="true">
+            ·
+          </span>
+          Due {dueRelative(task.deadline, state.workspace.demo_date)}
+        </p>
+        <h1>{step.title}</h1>
+        <div
+          className="focus-timer"
+          role="timer"
+          aria-live="off"
+          aria-label={`${clockLabel(inBlock)} of ${BLOCK_MIN} minutes in this block`}
+        >
+          <span className="focus-clock">
+            {clockLabel(Math.min(inBlock, blockMs))}
+          </span>
+          <span className="focus-of"> / {BLOCK_MIN}:00</span>
+        </div>
+        <div className="progress focus-bar" aria-hidden="true">
+          <span
+            style={{ width: `${Math.min(100, (inBlock / blockMs) * 100)}%` }}
+          />
+        </div>
+        <p className="focus-block">
+          {blocks > 1 ? `Block ${block} of ${blocks} · ` : ""}
+          planned {minutesLabel(step.minutes)} · {clockLabel(elapsed)} so far
+          {timer.pausedAt !== null && " · paused"}
+        </p>
+        {blockEnd && !over && (
+          <p className="focus-note" role="status">
+            Block done. A short break is fine — then keep going.
+          </p>
+        )}
+        {over && (
+          <p className="focus-note" role="status">
+            Over the planned time. That happens. Finish, or split what is left
+            into a new step.
+          </p>
+        )}
+        <div className="focus-actions">
+          <button className="btn primary" disabled={busy} onClick={finish}>
+            <Check size={16} />
+            Done
+          </button>
+          <button className="btn secondary" onClick={pause}>
+            {timer.pausedAt === null ? "Pause" : "Resume"}
+          </button>
+          {next && (
+            <button className="btn ghost" onClick={() => startNext(next.id)}>
+              Skip to next
+            </button>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}
+/** Re-renders once a second while `running`. */
+function useTick(running: boolean) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    if (!running) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [running]);
+  return now;
+}
 function PageHeading({
   eyebrow,
   title,
@@ -1104,7 +1354,9 @@ function Dashboard({
                   aria-label={`Complete ${s.title}`}
                   className={`check-circle ${i === 0 ? "first" : ""}`}
                   disabled={busy}
-                  onClick={() => run("subtask", { id: s.id })}
+                  onClick={() =>
+                    run("subtask", { id: s.id }, stepDoneMessage(focus, s.id))
+                  }
                 >
                   <Check size={16} />
                 </button>
@@ -1115,11 +1367,13 @@ function Dashboard({
                     {state.tasks.find((t) => t.id === s.task_id)?.title}
                   </span>
                 </Link>
-                <span className="time-pill">
-                  {s.minutes >= 60
-                    ? `${hours(s.minutes / 60)}h`
-                    : `${s.minutes} min`}
-                </span>
+                <span className="time-pill">{minutesLabel(s.minutes)}</span>
+                <Link
+                  className={`btn ${i === 0 ? "primary" : "secondary"} start-btn`}
+                  to={`/employee/focus/${s.id}`}
+                >
+                  Start
+                </Link>
               </div>
             ))
           ) : (
@@ -1163,7 +1417,7 @@ function Dashboard({
                       </span>
                     </Link>
                   </td>
-                  <td>{due(t.deadline, true)}</td>
+                  <td>{dueRelative(t.deadline, state.workspace.demo_date)}</td>
                   <td>{hours(t.personalized_hours)}h</td>
                 </tr>
               ))}
@@ -1491,7 +1745,7 @@ function TaskRow({
           <span className="bullet" aria-hidden="true">
             ·
           </span>{" "}
-          Due {due(task.deadline, true)}
+          Due {dueRelative(task.deadline, state.workspace.demo_date)}
         </span>
         {risk(task, state) && (
           <small className="risk-text">{risk(task, state)}</small>
@@ -1660,7 +1914,10 @@ function TaskDetail({
         </div>
         <div>
           <dt>Deadline</dt>
-          <dd>{due(task.deadline)}</dd>
+          <dd>
+            {dueRelative(task.deadline, state.workspace.demo_date)}
+            <small> · {due(task.deadline)}</small>
+          </dd>
         </div>
         <div>
           <dt>Assigned by</dt>
@@ -1721,10 +1978,20 @@ function TaskDetail({
                   type="checkbox"
                   checked={s.completed}
                   disabled={busy || disabled}
-                  onChange={() => run("subtask", { id: s.id })}
+                  onChange={() =>
+                    run("subtask", { id: s.id }, stepDoneMessage(subs, s.id))
+                  }
                 />
                 <span>{s.title}</span>
-                <small>{s.minutes} min</small>
+                {!s.completed && !disabled && (
+                  <Link
+                    className="btn secondary start-btn"
+                    to={`/employee/focus/${s.id}`}
+                  >
+                    Start
+                  </Link>
+                )}
+                <small>{minutesLabel(s.minutes)}</small>
               </label>
             ))
           ) : (

@@ -909,7 +909,7 @@ textarea:focus-visible {
 .focus-item:last-child {
   border-bottom: 0;
 }
-.focus-item a {
+.focus-item > a:not(.btn) {
   flex: 1;
   min-width: 0;
 }
@@ -919,11 +919,11 @@ textarea:focus-visible {
   font-weight: 500;
   color: var(--ink);
 }
-.focus-item a:hover strong {
+.focus-item > a:not(.btn):hover strong {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
-.focus-item a span {
+.focus-item > a:not(.btn) span {
   display: block;
   margin-top: 2px;
   font-size: 0.8125rem;
@@ -1694,6 +1694,148 @@ td:last-child {
   animation: ai-caret 0.8s steps(1) infinite;
 }
 
+/* ---------- focus mode ---------- */
+.focus {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--paper);
+}
+.focus-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 28px;
+  font-size: 0.875rem;
+}
+.focus-top > a {
+  color: var(--muted);
+}
+.focus-top > a:hover {
+  color: var(--ink);
+}
+.focus-main {
+  flex: 1;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 8vh 24px 64px;
+  text-align: center;
+}
+.focus-main:focus {
+  outline: none;
+}
+.focus-parent {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  font-size: 0.9375rem;
+  color: var(--muted);
+}
+.focus-parent .current-label {
+  margin-right: 6px;
+}
+.focus-parent a {
+  color: var(--ink);
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 3px;
+}
+.focus-main h1 {
+  margin: 12px 0 40px;
+  font-size: 2.5rem;
+  text-wrap: balance;
+}
+.focus-timer {
+  font-family: var(--font-serif);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.focus-clock {
+  font-size: 5rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.focus-of {
+  font-size: 1.5rem;
+  color: var(--muted);
+}
+.focus-bar {
+  max-width: 360px;
+  margin: 22px auto 0;
+}
+.focus-block {
+  margin-top: 12px;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+.focus-note {
+  max-width: 420px;
+  margin: 18px auto 0;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--green-bg);
+  color: var(--green-text);
+  font-size: 0.9375rem;
+}
+.focus-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 36px;
+}
+.focus-actions .btn.primary {
+  padding: 12px 22px;
+  font-size: 1rem;
+}
+.focus-done .overline {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--green-bg);
+  color: var(--green-text);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.focus-done h1 {
+  margin: 12px 0 8px;
+}
+.focus-next {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  max-width: 420px;
+  margin: 36px auto 0;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.focus-next strong {
+  font-size: 1.125rem;
+  color: var(--ink);
+}
+.focus-next .focus-actions {
+  margin-top: 16px;
+}
+.start-btn {
+  padding: 5px 12px;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+.subtask-list label .start-btn {
+  margin-left: auto;
+}
+.subtask-list label .start-btn + small {
+  margin-left: 12px;
+}
+
 /* ---------- states ---------- */
 .empty {
   padding: 48px 20px;
@@ -2372,6 +2514,18 @@ td:last-child {
 
   .signin-top {
     padding: 16px;
+  }
+  .focus-top {
+    padding: 14px 16px;
+  }
+  .focus-main {
+    padding: 5vh 16px 48px;
+  }
+  .focus-main h1 {
+    font-size: 1.75rem;
+  }
+  .focus-clock {
+    font-size: 3.5rem;
   }
   .signin-main {
     grid-template-columns: 1fr;
