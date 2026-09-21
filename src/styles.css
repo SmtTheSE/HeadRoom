@@ -197,13 +197,9 @@ strong {
   color: var(--ink);
 }
 .brand-mark {
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   margin-right: 10px;
-  padding: 5px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: #fff;
 }
 .brand-period {
   color: var(--green-bar);
