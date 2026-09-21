@@ -581,6 +581,7 @@ export default function App() {
                     busy={busy}
                     run={run}
                     resolve={() => setCompose({ mode: "request" })}
+                    userName={firstName(session, "Alex")}
                   />
                 }
               />
@@ -616,7 +617,12 @@ export default function App() {
               />
               <Route
                 path="/manager/dashboard"
-                element={<ManagerDashboard state={state} />}
+                element={
+                  <ManagerDashboard
+                    state={state}
+                    userName={firstName(session, "Sarah")}
+                  />
+                }
               />
               <Route
                 path="/manager/employees/:id"
@@ -801,6 +807,37 @@ function GoogleMark() {
     </svg>
   );
 }
+/** Real wall-clock time, refreshed every minute. */
+function useNow() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
+  return now;
+}
+function greeting(now: Date) {
+  const h = now.getHours();
+  return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+}
+const longDate = new Intl.DateTimeFormat("en", {
+  weekday: "long",
+  month: "long",
+  day: "numeric",
+  year: "numeric",
+});
+const clock = new Intl.DateTimeFormat("en", {
+  hour: "numeric",
+  minute: "2-digit",
+});
+/** First name of the signed-in account, or the sample persona when signed out. */
+function firstName(session: Session | null, fallback: string) {
+  const full: string | undefined =
+    session?.user.user_metadata.full_name ??
+    session?.user.user_metadata.name ??
+    session?.user.email;
+  return (full ?? fallback).split(/[\s@]/)[0];
+}
 function PageHeading({
   eyebrow,
   title,
@@ -809,7 +846,7 @@ function PageHeading({
 }: {
   eyebrow?: string;
   title: string;
-  subtitle: string;
+  subtitle?: string;
   children?: ReactNode;
 }) {
   return (
@@ -817,7 +854,7 @@ function PageHeading({
       <div>
         {eyebrow && <div className="eyebrow">{eyebrow}</div>}
         <h1>{title}</h1>
-        <p>{subtitle}</p>
+        {subtitle && <p>{subtitle}</p>}
       </div>
       {children}
     </div>
@@ -877,12 +914,15 @@ function Dashboard({
   busy,
   run,
   resolve,
+  userName,
 }: {
   state: AppState;
   busy: boolean;
   run: Run;
   resolve: () => void;
+  userName: string;
 }) {
+  const now = useNow();
   const load = workload(state.tasks),
     open = state.negotiations.find((n) =>
       ["pending", "counter_proposed"].includes(n.status),
@@ -903,12 +943,11 @@ function Dashboard({
     state.negotiations.some((n) => n.status === "approved") && load <= 30;
   return (
     <>
-      <TaskInbox state={state} busy={busy} run={run} />
       <PageHeading
-        eyebrow="Wednesday, September 23 · Week of Sep 21 – 27"
-        title="Good morning, Alex."
-        subtitle="One thing at a time. Let’s make today feel manageable."
+        eyebrow={`${longDate.format(now)} · ${clock.format(now)}`}
+        title={`${greeting(now)}, ${userName}.`}
       />
+      <TaskInbox state={state} busy={busy} run={run} />
       {resolved && (
         <div className="banner success">
           <div>
@@ -1027,12 +1066,11 @@ function Dashboard({
    potential tasks. Keyed by the draft task they would create. */
 const TEAMS_MESSAGES: Record<
   string,
-  { from: string; channel: string; time: string; text: string }
+  { from: string; channel: string; text: string }
 > = {
   "new-research": {
     from: "Sarah Lee",
     channel: "Design team",
-    time: "9:12 AM",
     text: "Hi Alex, could you put together a competitor research summary for the client pitch? Focus on the three main competitors’ pricing pages and onboarding flows, and pull a few screenshots we can drop into the deck. Thursday morning would be ideal so we have time to review before the call. Thanks!",
   },
 };
@@ -1059,6 +1097,7 @@ function TaskInbox({
 }) {
   const [dismissed, setDismissed] = useState<string[]>(readDismissed);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [receivedAt] = useState(() => new Date());
   const drafts = state.tasks.filter(
     (t) =>
       t.employee_id === "alex" &&
@@ -1077,7 +1116,6 @@ function TaskInbox({
         const m = TEAMS_MESSAGES[t.id] ?? {
           from: "Sarah Lee",
           channel: "Design team",
-          time: "",
           text: t.description,
         };
         const expanded = openId === t.id;
@@ -1085,8 +1123,8 @@ function TaskInbox({
           <section className="inbox-item" key={t.id}>
             <div className="inbox-main">
               <span className="inbox-source">
-                Microsoft Teams · {m.from} in {m.channel}
-                {m.time && ` · ${m.time}`}
+                Microsoft Teams · {m.from} in {m.channel} · Today,{" "}
+                {clock.format(receivedAt)}
               </span>
               <strong>Potential New Task</strong>
               <button
@@ -1649,7 +1687,14 @@ function CapacityPage({
     </>
   );
 }
-function ManagerDashboard({ state }: { state: AppState }) {
+function ManagerDashboard({
+  state,
+  userName,
+}: {
+  state: AppState;
+  userName: string;
+}) {
+  const now = useNow();
   const employees = state.profiles
     .filter((p) => p.id !== "sarah")
     .sort(
@@ -1666,8 +1711,8 @@ function ManagerDashboard({ state }: { state: AppState }) {
   return (
     <>
       <PageHeading
-        eyebrow="Wednesday, September 23 · Week of Sep 21 – 27"
-        title="Good morning, Sarah."
+        eyebrow={`${longDate.format(now)} · ${clock.format(now)}`}
+        title={`${greeting(now)}, ${userName}.`}
         subtitle="See where the team has room, and where a conversation could help."
       />
       <dl className="stats-row">
