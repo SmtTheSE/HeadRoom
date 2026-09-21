@@ -32,7 +32,6 @@ import {
   X,
   AlertCircle,
   CheckCircle2,
-  Leaf,
 } from "lucide-react";
 import { action, loadState, supabase } from "./data";
 import { previewState } from "./seed";
@@ -183,7 +182,9 @@ export default function App() {
     : "employee";
   useEffect(() => {
     let mounted = true;
-    const authError = new URLSearchParams(window.location.search).get("error_description");
+    const authError = new URLSearchParams(window.location.search).get(
+      "error_description",
+    );
     if (authError) setNotice(authError, "error");
     supabase.auth
       .getSession()
@@ -196,7 +197,10 @@ export default function App() {
       })
       .catch(() => {
         if (mounted) {
-          setNotice("We could not restore your sign-in. Please try again.", "error");
+          setNotice(
+            "We could not restore your sign-in. Please try again.",
+            "error",
+          );
           setReady(true);
         }
       });
@@ -248,7 +252,10 @@ export default function App() {
       return false;
     }
     if (!query.data) {
-      setNotice("Your workspace is not ready yet. Please retry loading it.", "error");
+      setNotice(
+        "Your workspace is not ready yet. Please retry loading it.",
+        "error",
+      );
       return false;
     }
     setBusy(true);
@@ -389,10 +396,7 @@ export default function App() {
                 <LogOut size={18} />
               </button>
             ) : (
-              <button
-                className="btn primary"
-                onClick={() => setAuthOpen(true)}
-              >
+              <button className="btn primary" onClick={() => setAuthOpen(true)}>
                 Sign in
               </button>
             )}
@@ -585,52 +589,52 @@ function PageHeading({
 function CapacityCard({
   state,
   employee = "alex",
-  compact = false,
 }: {
   state: AppState;
   employee?: string;
-  compact?: boolean;
 }) {
   const p = person(state, employee),
     load = workload(state.tasks, employee),
+    over = load > p.capacity,
     onCapacityPage = useLocation().pathname.endsWith("/capacity");
   return (
-    <section className={`capacity-card ${compact ? "compact" : ""}`}>
-      <div className="card-top">
-        <span>
-          <Gauge size={16} />
+    <section className="capacity-hero" aria-label="This week’s workload">
+      <div className="capacity-figure">
+        <span className="capacity-label">
+          <Gauge size={15} />
           This week
         </span>
-        <Badge load={load} capacity={p.capacity} />
+        <div className="capacity-number">
+          {hours(load)}
+          <span> / {p.capacity}h</span>
+        </div>
       </div>
-      <div className="capacity-number">
-        {hours(load)}
-        <span> / {p.capacity}h</span>
-      </div>
-      <p className="capacity-description">Personalized workload · this week</p>
-      <Progress load={load} capacity={p.capacity} dark />
-      <div className="capacity-bottom">
-        <span className="capacity-symbol">
-          {load > p.capacity ? <AlertCircle size={20} /> : <Leaf size={20} />}
-        </span>
-        <p>
+      <div className="capacity-detail">
+        <div className="capacity-detail-head">
+          <Badge load={load} capacity={p.capacity} />
+          <span>Personalized workload</span>
+        </div>
+        <Progress load={load} capacity={p.capacity} dark />
+        <p className="capacity-note">
           <strong>
-            {load > p.capacity
-              ? `${hours(load - p.capacity)}h over your recommended capacity`
-              : `${hours(p.capacity - load)}h of breathing room`}
-          </strong>
-          <span>
-            {load > p.capacity
-              ? "A small adjustment can make the week work."
-              : "Meetings, breaks, and life need space too."}
-          </span>
+            {over
+              ? `${hours(load - p.capacity)}h over your recommended capacity.`
+              : `${hours(p.capacity - load)}h of breathing room.`}
+          </strong>{" "}
+          {over
+            ? "A small adjustment can make the week work."
+            : "Meetings, breaks, and life need space too."}
         </p>
-        {!onCapacityPage && (
-          <Link to="/employee/capacity" aria-label="View capacity breakdown">
-            <ArrowUpRight size={22} />
-          </Link>
-        )}
       </div>
+      {!onCapacityPage && (
+        <Link
+          className="capacity-link"
+          to="/employee/capacity"
+          aria-label="View capacity breakdown"
+        >
+          <ArrowUpRight size={20} />
+        </Link>
+      )}
     </section>
   );
 }
@@ -708,121 +712,109 @@ function Dashboard({
           )}
         </div>
       )}
-      <div className="dashboard-grid">
-        <section className="card focus-card">
-          <div className="section-head">
-            <h2>Today’s focus</h2>
-            <span className="muted small">{focus.length} small steps</span>
-          </div>
-          <p className="section-description">
-            A clear place to start. Everything else can wait.
-          </p>
-          <div className="focus-list">
-            {focus.length ? (
-              focus.map((s, i) => (
-                <div className="focus-item" key={s.id}>
-                  <button
-                    aria-label={`Complete ${s.title}`}
-                    className={`check-circle ${i === 0 ? "first" : ""}`}
-                    disabled={busy}
-                    onClick={() => run("subtask", { id: s.id })}
-                  >
-                    <Check size={16} />
-                  </button>
-                  <Link to={`/employee/tasks/${s.task_id}`}>
-                    <strong>{s.title}</strong>
-                    <span>
-                      {state.tasks.find((t) => t.id === s.task_id)?.title}
-                    </span>
-                  </Link>
-                  <span className="time-pill">
-                    <Clock3 size={13} />
-                    {s.minutes >= 60
-                      ? `${hours(s.minutes / 60)}h`
-                      : `${s.minutes} min`}
+      <CapacityCard state={state} />
+      <section className="section">
+        <div className="section-head">
+          <h2>Today’s focus</h2>
+          <span className="muted">{focus.length} small steps</span>
+        </div>
+        <div className="focus-list">
+          {focus.length ? (
+            focus.map((s, i) => (
+              <div className="focus-item" key={s.id}>
+                <button
+                  aria-label={`Complete ${s.title}`}
+                  className={`check-circle ${i === 0 ? "first" : ""}`}
+                  disabled={busy}
+                  onClick={() => run("subtask", { id: s.id })}
+                >
+                  <Check size={16} />
+                </button>
+                <Link to={`/employee/tasks/${s.task_id}`}>
+                  <strong>{s.title}</strong>
+                  <span>
+                    {state.tasks.find((t) => t.id === s.task_id)?.title}
                   </span>
-                </div>
-              ))
-            ) : (
-              <div className="empty">
-                <CheckCheck />
-                <p>All your focus steps are complete.</p>
-                <Link to="/employee/tasks">See your tasks</Link>
+                </Link>
+                <span className="time-pill">
+                  <Clock3 size={13} />
+                  {s.minutes >= 60
+                    ? `${hours(s.minutes / 60)}h`
+                    : `${s.minutes} min`}
+                </span>
               </div>
-            )}
-          </div>
-          <Link className="text-link focus-footer" to="/employee/tasks">
-            See all my tasks <ArrowRight size={16} />
+            ))
+          ) : (
+            <div className="empty">
+              <CheckCheck />
+              <p>All your focus steps are complete.</p>
+              <Link to="/employee/tasks">See your tasks</Link>
+            </div>
+          )}
+        </div>
+      </section>
+      <section className="section">
+        <div className="section-head">
+          <h2>Coming up this week</h2>
+          <Link className="text-link" to="/employee/tasks">
+            View all <ArrowUpRight size={16} />
           </Link>
-        </section>
-        <CapacityCard state={state} />
-      </div>
-      <div className="lower-grid">
-        <section className="card deadlines-card">
-          <div className="section-head">
-            <h2>Coming up this week</h2>
-            <Link className="text-link" to="/employee/tasks">
-              View all <ArrowUpRight size={16} />
-            </Link>
-          </div>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Task</th>
-                  <th>Due</th>
-                  <th>Your estimate</th>
+        </div>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Task</th>
+                <th>Due</th>
+                <th>Your estimate</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tasks.slice(0, 4).map((t) => (
+                <tr key={t.id}>
+                  <td>
+                    <Link to={`/employee/tasks/${t.id}`}>
+                      <span className={`task-mark ${t.category.toLowerCase()}`}>
+                        <ListTodo size={17} />
+                      </span>
+                      <span>
+                        {t.title}
+                        {risk(t, state) && (
+                          <small className="risk-text">{risk(t, state)}</small>
+                        )}
+                      </span>
+                    </Link>
+                  </td>
+                  <td>{due(t.deadline, true)}</td>
+                  <td>{hours(t.personalized_hours)}h</td>
                 </tr>
-              </thead>
-              <tbody>
-                {tasks.slice(0, 4).map((t) => (
-                  <tr key={t.id}>
-                    <td>
-                      <Link to={`/employee/tasks/${t.id}`}>
-                        <span
-                          className={`task-mark ${t.category.toLowerCase()}`}
-                        >
-                          <ListTodo size={17} />
-                        </span>
-                        <span>
-                          {t.title}
-                          {risk(t, state) && (
-                            <small className="risk-text">
-                              {risk(t, state)}
-                            </small>
-                          )}
-                        </span>
-                      </Link>
-                    </td>
-                    <td>{due(t.deadline, true)}</td>
-                    <td>{hours(t.personalized_hours)}h</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-        <section className="assignment-card">
-            <span className="eyebrow">
-              <span className="tiny-dot" />
-              Demo scenario
-            </span>
-            <h3>
-              {draft
-                ? "A new request just came in."
-                : "The new request is on your board."}
-            </h3>
-            <p>Client Competitor Research · 7h</p>
-            <button
-              className="btn secondary full"
-              disabled={busy || !draft}
-              onClick={() => run("activate")}
-            >
-              {draft ? <Plus size={16} /> : <Check size={16} />}{" "}
-              {draft ? "Add demo assignment" : "Assignment added"}
-            </button>
-        </section>
-      </div>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section className="section demo-row">
+        <div>
+          <span className="eyebrow">
+            <span className="tiny-dot" />
+            Demo scenario
+          </span>
+          <h3>
+            {draft
+              ? "A new request just came in."
+              : "The new request is on your board."}
+          </h3>
+          <p className="muted">Client Competitor Research · 7h</p>
+        </div>
+        <button
+          className="btn secondary"
+          disabled={busy || !draft}
+          onClick={() => run("activate")}
+        >
+          {draft ? <Plus size={16} /> : <Check size={16} />}
+          {draft ? "Add demo assignment" : "Assignment added"}
+        </button>
+      </section>
     </>
   );
 }
@@ -872,7 +864,13 @@ function TaskRow({ task, state }: { task: Task; state: AppState }) {
     </Link>
   );
 }
-const TASK_FILTERS = ["All", "Today", "This Week", "At Risk", "Completed"] as const;
+const TASK_FILTERS = [
+  "All",
+  "Today",
+  "This Week",
+  "At Risk",
+  "Completed",
+] as const;
 function TasksPage({ state }: { state: AppState }) {
   const [filter, setFilter] = useState<(typeof TASK_FILTERS)[number]>("All");
   const tasks = state.tasks
@@ -905,7 +903,7 @@ function TasksPage({ state }: { state: AppState }) {
         value={filter}
         onChange={setFilter}
       />
-      <section className="card task-list">
+      <div className="task-list">
         {tasks.length ? (
           tasks.map((t) => <TaskRow key={t.id} task={t} state={state} />)
         ) : (
@@ -915,7 +913,7 @@ function TasksPage({ state }: { state: AppState }) {
             <p>Try another filter to see the rest of your work.</p>
           </div>
         )}
-      </section>
+      </div>
     </>
   );
 }
@@ -952,121 +950,120 @@ function TaskDetail({
         title={task.title}
         subtitle={task.description}
       />
-      <div className="detail-grid">
-        <section className="card">
-          <div className="section-head">
-            <h2>Your next steps</h2>
-            <span className="muted small">
-              {subs.filter((s) => s.completed).length} / {subs.length} complete
-            </span>
-          </div>
-          <div className="subtask-list">
-            {subs.length ? (
-              subs.map((s) => (
-                <label key={s.id} className={s.completed ? "done" : ""}>
-                  <input
-                    type="checkbox"
-                    checked={s.completed}
-                    disabled={busy || disabled}
-                    onChange={() => run("subtask", { id: s.id })}
-                  />
-                  <span>{s.title}</span>
-                  <small>{s.minutes} min</small>
-                </label>
-              ))
-            ) : (
-              <p className="muted">
-                This task is ready to work on. Record your time below when
-                you’re ready.
-              </p>
-            )}
-          </div>
-          <div className="detail-section">
-            <h3>Dependencies</h3>
-            {deps.length ? (
-              deps.map((d) => (
-                <p key={d.prerequisite_id}>
-                  {state.tasks.find((t) => t.id === d.prerequisite_id)?.title}
-                </p>
-              ))
-            ) : (
-              <p className="muted">No prerequisites. You can get started.</p>
-            )}
-          </div>
-          <div className="detail-section">
-            <h3>Time spent</h3>
-            <p className="muted">
-              Actual time helps personalize estimates for future tasks.
-            </p>
-            <div className="hours-form">
-              <label>
-                <span>Total hours</span>
-                <input
-                  type="number"
-                  min="0"
-                  max="500"
-                  step="0.1"
-                  value={actual}
-                  disabled={disabled}
-                  onChange={(e) => setActual(e.target.value)}
-                />
-              </label>
-              <button
-                className="btn secondary"
-                disabled={busy || disabled || actual === ""}
-                onClick={() =>
-                  run("hours", { id, actual_hours: Number(actual) })
-                }
-              >
-                Save time
-              </button>
-              <button
-                className="btn primary"
-                disabled={
-                  busy ||
-                  disabled ||
-                  Number(actual) <= 0 ||
-                  !Number.isFinite(Number(actual))
-                }
-                onClick={() => setCompleteOpen(true)}
-              >
-                <Check size={16} />
-                {task.status === "completed" ? "Completed" : "Complete task"}
-              </button>
-            </div>
-          </div>
-        </section>
-        <aside>
-          <section className="card task-summary">
+      <dl className="meta-strip">
+        <div>
+          <dt>Priority</dt>
+          <dd>
             <span className={`priority ${task.priority.toLowerCase()}`}>
-              {task.priority} priority
+              {task.priority}
             </span>
-            <dl>
-              <dt>Deadline</dt>
-              <dd>{due(task.deadline)}</dd>
-              <dt>Assigned by</dt>
-              <dd>Sarah Lee</dd>
-              <dt>Status</dt>
-              <dd className="capitalize">{task.status.replace("_", " ")}</dd>
-            </dl>
-            <div className="estimate-block">
-              <span>Your personalized estimate</span>
-              <strong>
-                {hours(task.personalized_hours)}
-                <small>h</small>
-              </strong>
-              <p>
-                {hours(task.estimated_hours)}h original ×{" "}
-                {task.multiplier.toFixed(2)} adjustment
-              </p>
-            </div>
-            <p className="caption">
-              Based on your recent work patterns. This estimate stays fixed
-              while the task is active.
+          </dd>
+        </div>
+        <div>
+          <dt>Deadline</dt>
+          <dd>{due(task.deadline)}</dd>
+        </div>
+        <div>
+          <dt>Assigned by</dt>
+          <dd>Sarah Lee</dd>
+        </div>
+        <div>
+          <dt>Status</dt>
+          <dd className="capitalize">{task.status.replace("_", " ")}</dd>
+        </div>
+        <div>
+          <dt>Your estimate</dt>
+          <dd>
+            {hours(task.personalized_hours)}h
+            <small>
+              {" "}
+              · {hours(task.estimated_hours)}h × {task.multiplier.toFixed(2)}
+            </small>
+          </dd>
+        </div>
+      </dl>
+      <section className="section">
+        <div className="section-head">
+          <h2>Your next steps</h2>
+          <span className="muted">
+            {subs.filter((s) => s.completed).length} / {subs.length} complete
+          </span>
+        </div>
+        <div className="subtask-list">
+          {subs.length ? (
+            subs.map((s) => (
+              <label key={s.id} className={s.completed ? "done" : ""}>
+                <input
+                  type="checkbox"
+                  checked={s.completed}
+                  disabled={busy || disabled}
+                  onChange={() => run("subtask", { id: s.id })}
+                />
+                <span>{s.title}</span>
+                <small>{s.minutes} min</small>
+              </label>
+            ))
+          ) : (
+            <p className="muted">
+              This task is ready to work on. Record your time below when you’re
+              ready.
             </p>
-          </section>
-        </aside>
-      </div>
+          )}
+        </div>
+      </section>
+      <section className="section">
+        <h2>Dependencies</h2>
+        {deps.length ? (
+          deps.map((d) => (
+            <p key={d.prerequisite_id}>
+              {state.tasks.find((t) => t.id === d.prerequisite_id)?.title}
+            </p>
+          ))
+        ) : (
+          <p className="muted">No prerequisites. You can get started.</p>
+        )}
+      </section>
+      <section className="section">
+        <h2>Time spent</h2>
+        <p className="muted">
+          Actual time helps personalize estimates for future tasks. Your
+          estimate stays fixed while the task is active.
+        </p>
+        <div className="hours-form">
+          <label>
+            <span>Total hours</span>
+            <input
+              type="number"
+              min="0"
+              max="500"
+              step="0.1"
+              value={actual}
+              disabled={disabled}
+              onChange={(e) => setActual(e.target.value)}
+            />
+          </label>
+          <button
+            className="btn secondary"
+            disabled={busy || disabled || actual === ""}
+            onClick={() => run("hours", { id, actual_hours: Number(actual) })}
+          >
+            Save time
+          </button>
+          <button
+            className="btn primary"
+            disabled={
+              busy ||
+              disabled ||
+              Number(actual) <= 0 ||
+              !Number.isFinite(Number(actual))
+            }
+            onClick={() => setCompleteOpen(true)}
+          >
+            <Check size={16} />
+            {task.status === "completed" ? "Completed" : "Complete task"}
+          </button>
+        </div>
+      </section>
       {completeOpen && (
         <Modal
           title="Mark this task complete?"
@@ -1155,39 +1152,26 @@ function CapacityPage({
   resolve: () => void;
 }) {
   const [next, setNext] = useState(false);
+  const canResolve =
+    workload(state.tasks) > 30 &&
+    !state.negotiations.some((n) =>
+      ["pending", "counter_proposed"].includes(n.status),
+    );
+  const categories = [
+    "Research",
+    "Presentation",
+    "Testing",
+    "Analytics",
+    "Design",
+  ];
   return (
     <>
       <PageHeading
         title="My capacity"
         subtitle="A planning tool, not a measure of your value."
       />
-      <div className="capacity-layout">
-        <CapacityCard state={state} />
-        <section className="card capacity-explainer">
-          <h2>Why 30 hours?</h2>
-          <p>
-            In a 40-hour week, we leave 10 hours for meetings, admin,
-            communication, and breaks.
-          </p>
-          <div className="week-split">
-            <span>30h focus</span>
-            <span>10h other</span>
-          </div>
-          <p className="caption">
-            This is a configured starting point for the demo. It isn’t a
-            clinical assessment.
-          </p>
-          {workload(state.tasks) > 30 &&
-            !state.negotiations.some((n) =>
-              ["pending", "counter_proposed"].includes(n.status),
-            ) && (
-              <button className="btn primary" onClick={resolve}>
-                Resolve workload <ArrowRight size={16} />
-              </button>
-            )}
-        </section>
-      </div>
-      <section className="card">
+      <CapacityCard state={state} />
+      <section className="section">
         <div className="section-head">
           <h2>Where your capacity goes</h2>
           <Segmented
@@ -1204,44 +1188,66 @@ function CapacityPage({
           logged time does not subtract from this planning total.
         </p>
       </section>
-      <section className="learning-section">
+      <section className="section">
+        <h2>Why 30 hours?</h2>
+        <p className="muted">
+          In a 40-hour week, we leave 10 hours for meetings, admin,
+          communication, and breaks. This is a configured starting point for the
+          demo, not a clinical assessment.
+        </p>
+        <div className="week-split">
+          <span>30h focus</span>
+          <span>10h other</span>
+        </div>
+        {canResolve && (
+          <button className="btn primary" onClick={resolve}>
+            Resolve workload <ArrowRight size={16} />
+          </button>
+        )}
+      </section>
+      <section className="section">
         <div className="section-head">
           <h2>Learning your rhythm</h2>
-          <span className="muted small">From your completed work</span>
+          <span className="muted">From your completed work</span>
         </div>
-        <div className="learning-grid">
-          {["Research", "Presentation", "Testing", "Analytics", "Design"].map(
-            (category) => {
-              const m = multiplier(state.history, "alex", category);
-              const sample = state.history
-                  .filter(
-                    (h) => h.employee_id === "alex" && h.category === category,
-                  )
-                  .slice(0, 10),
-                avg = (key: "estimated_hours" | "actual_hours") =>
-                  sample.reduce((n, h) => n + h[key], 0) / (sample.length || 1);
-              return (
-                <div className="card learning-card" key={category}>
-                  <span className="learning-category">{category}</span>
-                  <strong>
-                    {m.value.toFixed(2)}
-                    <small>×</small>
-                  </strong>
-                  <p>Current adjustment</p>
-                  <dl>
-                    <dt>Original average</dt>
-                    <dd>{hours(avg("estimated_hours"))}h</dd>
-                    <dt>Your recent average</dt>
-                    <dd>{hours(avg("actual_hours"))}h</dd>
-                  </dl>
-                  <span className="caption">
-                    {m.count} samples ·{" "}
-                    {m.categorySpecific ? "category" : "overall"} pattern
-                  </span>
-                </div>
-              );
-            },
-          )}
+        <div className="table-wrap">
+          <table className="learning-table">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Original average</th>
+                <th>Your recent average</th>
+                <th>Basis</th>
+                <th>Adjustment</th>
+              </tr>
+            </thead>
+            <tbody>
+              {categories.map((category) => {
+                const m = multiplier(state.history, "alex", category);
+                const sample = state.history
+                    .filter(
+                      (h) =>
+                        h.employee_id === "alex" && h.category === category,
+                    )
+                    .slice(0, 10),
+                  avg = (key: "estimated_hours" | "actual_hours") =>
+                    sample.reduce((n, h) => n + h[key], 0) /
+                    (sample.length || 1);
+                return (
+                  <tr key={category}>
+                    <td>{category}</td>
+                    <td>{hours(avg("estimated_hours"))}h</td>
+                    <td>{hours(avg("actual_hours"))}h</td>
+                    <td>
+                      {m.count} samples ·{" "}
+                      {m.categorySpecific ? "category" : "overall"} pattern
+                    </td>
+                    <td>{m.value.toFixed(2)}×</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
         <p className="caption">
           We average actual-to-estimated time ratios from up to 10 recent tasks.
@@ -1263,6 +1269,9 @@ function ManagerDashboard({ state }: { state: AppState }) {
   const states = employees.map(
     (p) => status(workload(state.tasks, p.id), p.capacity).label,
   );
+  const openRequests = state.negotiations.filter((n) =>
+    ["pending", "counter_proposed"].includes(n.status),
+  ).length;
   return (
     <>
       <PageHeading
@@ -1270,91 +1279,75 @@ function ManagerDashboard({ state }: { state: AppState }) {
         title="Good morning, Sarah."
         subtitle="See where the team has room, and where a conversation could help."
       />
-      <div className="stats-grid">
-        {[
-          ["Team members", employees.length, Users],
-          [
-            "Capacity conflicts",
-            states.filter((s) => s === "Capacity Conflict").length,
-            AlertCircle,
-          ],
-          [
-            "Near capacity",
-            states.filter((s) => s === "Near Capacity").length,
-            Gauge,
-          ],
-          [
-            "Open requests",
-            state.negotiations.filter((n) =>
-              ["pending", "counter_proposed"].includes(n.status),
-            ).length,
-            MessageSquare,
-          ],
-        ].map(([label, value, Icon]) => {
-          const I = Icon as typeof Users;
-          return (
-            <div className="card stat-card" key={String(label)}>
-              <span>
-                {String(label)}
-                <I size={19} />
-              </span>
-              <strong>{String(value)}</strong>
-            </div>
-          );
-        })}
-      </div>
-      <div className="section-head team-heading">
-        <h2>Everyone’s week</h2>
-        <span className="muted small">Sorted by capacity pressure</span>
-      </div>
-      <div className="team-grid">
-        {employees.map((p) => {
-          const load = workload(state.tasks, p.id),
-            risks = state.tasks.filter(
-              (t) => t.employee_id === p.id && risk(t, state),
-            ).length,
-            requests = state.negotiations.filter(
-              (n) =>
-                n.employee_id === p.id &&
-                ["pending", "counter_proposed"].includes(n.status),
-            ).length;
-          return (
-            <Link
-              className={`card team-card ${load > p.capacity ? "has-conflict" : ""}`}
-              to={`/manager/employees/${p.id}`}
-              key={p.id}
-            >
-              <div className="team-person">
-                <Avatar name={p.name} large />
-                <div>
-                  <h3>{p.name}</h3>
-                  <p>{p.job_title}</p>
+      <dl className="stats-row">
+        <div>
+          <dd>{employees.length}</dd>
+          <dt>Team members</dt>
+        </div>
+        <div>
+          <dd>{states.filter((s) => s === "Capacity Conflict").length}</dd>
+          <dt>Capacity conflicts</dt>
+        </div>
+        <div>
+          <dd>{states.filter((s) => s === "Near Capacity").length}</dd>
+          <dt>Near capacity</dt>
+        </div>
+        <div>
+          <dd>{openRequests}</dd>
+          <dt>Open requests</dt>
+        </div>
+      </dl>
+      <section className="section">
+        <div className="section-head">
+          <h2>Everyone’s week</h2>
+          <span className="muted">Sorted by capacity pressure</span>
+        </div>
+        <div className="team-list">
+          {employees.map((p) => {
+            const load = workload(state.tasks, p.id),
+              risks = state.tasks.filter(
+                (t) => t.employee_id === p.id && risk(t, state),
+              ).length,
+              requests = state.negotiations.filter(
+                (n) =>
+                  n.employee_id === p.id &&
+                  ["pending", "counter_proposed"].includes(n.status),
+              ).length;
+            return (
+              <Link
+                className="team-row"
+                to={`/manager/employees/${p.id}`}
+                key={p.id}
+              >
+                <Avatar name={p.name} />
+                <div className="team-who">
+                  <strong>{p.name}</strong>
+                  <span>
+                    {p.job_title}
+                    <span className="bullet">·</span>
+                    {risks ? `${risks} tasks at risk` : "No tasks at risk"}
+                    {requests > 0 && (
+                      <>
+                        <span className="bullet">·</span>
+                        {requests} request pending
+                      </>
+                    )}
+                  </span>
                 </div>
-                <ArrowUpRight size={19} />
-              </div>
-              <div className="team-load">
-                <strong>
+                <div className="team-meter">
+                  <Progress load={load} capacity={p.capacity} />
+                </div>
+                <strong className="team-hours">
                   {hours(load)}
                   <span> / {p.capacity}h</span>
                 </strong>
                 <Badge load={load} capacity={p.capacity} />
-              </div>
-              <Progress load={load} capacity={p.capacity} />
-              <div className="team-card-bottom">
-                <span>
-                  {risks ? `${risks} tasks at risk` : "No tasks at risk"}
-                </span>
-                <span>
-                  {requests
-                    ? `${requests} request pending`
-                    : `${hours(Math.max(0, p.capacity - load))}h available`}
-                </span>
-              </div>
-            </Link>
-          );
-        })}
-      </div>
-      <section className="card request-preview">
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+      <section className="section">
         <div className="section-head">
           <h2>Workload requests</h2>
           <Link className="text-link" to="/manager/negotiations">
@@ -1366,19 +1359,16 @@ function ManagerDashboard({ state }: { state: AppState }) {
             .slice(0, 3)
             .map((n) => <RequestRow key={n.id} n={n} role="manager" />)
         ) : (
-          <div className="empty compact-empty">
-            <MessageSquare size={25} />
-            <p>No requests yet. New conversations will appear here.</p>
-          </div>
+          <p className="muted">
+            No requests yet. New conversations will appear here.
+          </p>
         )}
       </section>
-      <div className="privacy-note">
-        <ShieldCheck size={18} />
-        <p>
-          You see confirmed work, capacity, and shared requests. Personal notes
-          and health information are never part of this view.
-        </p>
-      </div>
+      <p className="privacy-note">
+        <ShieldCheck size={16} />
+        You see confirmed work, capacity, and shared requests. Personal notes
+        and health information are never part of this view.
+      </p>
     </>
   );
 }
@@ -1387,6 +1377,7 @@ function EmployeeDetail({ state }: { state: AppState }) {
     p = state.profiles.find((p) => p.id === id && p.id !== "sarah");
   if (!p) return <NotFound />;
   const load = workload(state.tasks, p.id);
+  const requests = state.negotiations.filter((n) => n.employee_id === p.id);
   return (
     <>
       <Link className="back-link" to="/manager/dashboard">
@@ -1396,46 +1387,32 @@ function EmployeeDetail({ state }: { state: AppState }) {
       <PageHeading title={p.name} subtitle={p.job_title}>
         <Badge load={load} capacity={p.capacity} />
       </PageHeading>
-      <div className="stats-grid three">
-        <div className="card stat-card">
-          <span>Current workload</span>
-          <strong>
-            {hours(load)}
-            <small>h</small>
-          </strong>
+      <dl className="stats-row">
+        <div>
+          <dd>{hours(load)}h</dd>
+          <dt>Current workload</dt>
         </div>
-        <div className="card stat-card">
-          <span>Weekly focus capacity</span>
-          <strong>
-            {p.capacity}
-            <small>h</small>
-          </strong>
+        <div>
+          <dd>{p.capacity}h</dd>
+          <dt>Weekly focus capacity</dt>
         </div>
-        <div className="card stat-card">
-          <span>
-            {load > p.capacity ? "Above capacity" : "Available capacity"}
-          </span>
-          <strong>
-            {hours(Math.abs(load - p.capacity))}
-            <small>h</small>
-          </strong>
+        <div>
+          <dd>{hours(Math.abs(load - p.capacity))}h</dd>
+          <dt>{load > p.capacity ? "Above capacity" : "Available"}</dt>
         </div>
-      </div>
-      <section className="card">
+      </dl>
+      <section className="section">
         <div className="section-head">
           <h2>Confirmed work this week</h2>
-          <span className="muted small">Personalized estimates</span>
+          <span className="muted">Personalized estimates</span>
         </div>
         <Breakdown state={state} employee={p.id} />
       </section>
-      <section className="card request-preview">
+      <section className="section">
         <h2>Shared workload requests</h2>
-        {state.negotiations
-          .filter((n) => n.employee_id === p.id)
-          .map((n) => (
-            <RequestRow key={n.id} n={n} role="manager" />
-          ))}
-        {!state.negotiations.some((n) => n.employee_id === p.id) && (
+        {requests.length ? (
+          requests.map((n) => <RequestRow key={n.id} n={n} role="manager" />)
+        ) : (
           <p className="muted">No requests for this teammate.</p>
         )}
       </section>
@@ -1470,8 +1447,7 @@ function Requests({
   role: Role;
   resolve: () => void;
 }) {
-  const [filter, setFilter] =
-    useState<(typeof REQUEST_FILTERS)[number]>("All");
+  const [filter, setFilter] = useState<(typeof REQUEST_FILTERS)[number]>("All");
   const list = state.negotiations.filter(
     (n) =>
       filter === "All" ||
@@ -1502,7 +1478,7 @@ function Requests({
         value={filter}
         onChange={setFilter}
       />
-      <section className="card">
+      <div className="request-list">
         {list.length ? (
           list.map((n) => <RequestRow key={n.id} n={n} role={role} />)
         ) : (
@@ -1516,7 +1492,7 @@ function Requests({
             </p>
           </div>
         )}
-      </section>
+      </div>
     </>
   );
 }
@@ -1725,116 +1701,114 @@ function RequestDetail({
         title={n.proposal.label}
         subtitle={`Revision ${n.revision} · ${n.status.replace("_", " ")}`}
       />
-      <div className="detail-grid">
-        <section className="card">
-          <h2>The proposed adjustment</h2>
-          {open ? (
-            <ProposalImpact state={state} proposal={n.proposal} />
-          ) : (
-            <div className="resolved-summary">
-              <CheckCircle2 size={25} />
-              <p>
-                {n.status === "approved"
-                  ? "This adjustment was approved and applied."
-                  : `This request was ${n.status}. No task changes were applied.`}
-              </p>
-              <strong>
-                Current workload: {hours(workload(state.tasks))} / 30h
-              </strong>
-            </div>
-          )}
-          {open && stale && (
-            <div className="warning-box">
-              This task changed after the proposal was sent.{" "}
-              {role === "manager"
-                ? "Send a fresh counter-proposal."
-                : "Cancel this request and propose a fresh adjustment, or revise the counter-proposal."}
-            </div>
-          )}
-          <div className="request-actions">
-            {role === "manager" && n.status === "pending" && (
-              <>
-                <button
-                  className="btn primary"
-                  disabled={busy || stale}
-                  onClick={() => run("approve", { id })}
-                >
-                  <Check size={17} />
-                  Approve adjustment
-                </button>
-                <button
-                  className="btn secondary"
-                  disabled={busy}
-                  onClick={() => compose("counter", n)}
-                >
-                  Counter-propose
-                </button>
-                <button
-                  className="btn text-danger"
-                  disabled={busy}
-                  onClick={() => run("decline", { id })}
-                >
-                  Decline
-                </button>
-              </>
-            )}
-            {role === "employee" && n.status === "counter_proposed" && (
-              <>
-                <button
-                  className="btn primary"
-                  disabled={busy || stale}
-                  onClick={() => run("accept", { id })}
-                >
-                  Accept counter-proposal
-                </button>
-                <button
-                  className="btn secondary"
-                  disabled={busy}
-                  onClick={() => compose("revise", n)}
-                >
-                  Suggest another change
-                </button>
-              </>
-            )}
-            {role === "employee" && open && (
+      <section className="section">
+        <h2>The proposed adjustment</h2>
+        {open ? (
+          <ProposalImpact state={state} proposal={n.proposal} />
+        ) : (
+          <div className="resolved-summary">
+            <CheckCircle2 size={25} />
+            <p>
+              {n.status === "approved"
+                ? "This adjustment was approved and applied."
+                : `This request was ${n.status}. No task changes were applied.`}
+            </p>
+            <strong>
+              Current workload: {hours(workload(state.tasks))} / 30h
+            </strong>
+          </div>
+        )}
+        {open && stale && (
+          <div className="warning-box">
+            This task changed after the proposal was sent.{" "}
+            {role === "manager"
+              ? "Send a fresh counter-proposal."
+              : "Cancel this request and propose a fresh adjustment, or revise the counter-proposal."}
+          </div>
+        )}
+        <div className="request-actions">
+          {role === "manager" && n.status === "pending" && (
+            <>
+              <button
+                className="btn primary"
+                disabled={busy || stale}
+                onClick={() => run("approve", { id })}
+              >
+                <Check size={17} />
+                Approve adjustment
+              </button>
               <button
                 className="btn secondary"
                 disabled={busy}
-                onClick={() => run("cancel", { id })}
+                onClick={() => compose("counter", n)}
               >
-                Cancel request
+                Counter-propose
               </button>
-            )}
-            {role === "employee" && n.status === "pending" && (
-              <p className="muted">
-                Waiting for Sarah’s response. Your assignments stay unchanged
-                until approval.
-              </p>
-            )}
-          </div>
-        </section>
-        <section className="card">
-          <h2>The conversation</h2>
-          <div className="timeline">
-            {state.messages
-              .filter((m) => m.negotiation_id === id)
-              .map((m) => (
-                <div className="timeline-item" key={m.id}>
-                  <Avatar
-                    name={m.author === "employee" ? "Alex Morgan" : "Sarah Lee"}
-                  />
-                  <div>
-                    <strong>
-                      {m.author === "employee" ? "Alex" : "Sarah"}
-                      <small>Revision {m.revision}</small>
-                    </strong>
-                    <p>{m.body}</p>
-                  </div>
+              <button
+                className="btn text-danger"
+                disabled={busy}
+                onClick={() => run("decline", { id })}
+              >
+                Decline
+              </button>
+            </>
+          )}
+          {role === "employee" && n.status === "counter_proposed" && (
+            <>
+              <button
+                className="btn primary"
+                disabled={busy || stale}
+                onClick={() => run("accept", { id })}
+              >
+                Accept counter-proposal
+              </button>
+              <button
+                className="btn secondary"
+                disabled={busy}
+                onClick={() => compose("revise", n)}
+              >
+                Suggest another change
+              </button>
+            </>
+          )}
+          {role === "employee" && open && (
+            <button
+              className="btn secondary"
+              disabled={busy}
+              onClick={() => run("cancel", { id })}
+            >
+              Cancel request
+            </button>
+          )}
+          {role === "employee" && n.status === "pending" && (
+            <p className="muted">
+              Waiting for Sarah’s response. Your assignments stay unchanged
+              until approval.
+            </p>
+          )}
+        </div>
+      </section>
+      <section className="section">
+        <h2>The conversation</h2>
+        <div className="timeline">
+          {state.messages
+            .filter((m) => m.negotiation_id === id)
+            .map((m) => (
+              <div className="timeline-item" key={m.id}>
+                <Avatar
+                  name={m.author === "employee" ? "Alex Morgan" : "Sarah Lee"}
+                />
+                <div>
+                  <strong>
+                    {m.author === "employee" ? "Alex" : "Sarah"}
+                    <small>Revision {m.revision}</small>
+                  </strong>
+                  <p>{m.body}</p>
                 </div>
-              ))}
-          </div>
-        </section>
-      </div>
+              </div>
+            ))}
+        </div>
+      </section>
     </>
   );
 }
