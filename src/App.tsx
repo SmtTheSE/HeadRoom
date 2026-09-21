@@ -1036,10 +1036,11 @@ function SignInPage({
       </header>
       <main className="signin-main">
         <section className="signin-copy">
-          <h1>Sign in to Headroom</h1>
+          <h1>Room to focus, for every team.</h1>
           <p className="signin-sub">
-            Plan realistic workloads and resolve capacity conflicts with your
-            manager.
+            A calm, AI-enabled workspace that works alongside Microsoft Teams.
+            Every person sees their capacity clearly, works one step at a time,
+            and agrees adjustments with their manager in the open.
           </p>
           <div className="signin-card">
             <button className="btn provider" disabled={busy} onClick={onGoogle}>
@@ -1066,7 +1067,8 @@ function SignInPage({
             </p>
           </div>
           <p className="signin-foot">
-            Capacity is a planning measure, not a performance rating.
+            Available as an organization plan. Each member gets a workspace
+            sized to their capacity.
           </p>
         </section>
         <aside className="signin-visual" aria-hidden="true">
