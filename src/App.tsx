@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import {
   Link,
   NavLink,
@@ -51,6 +57,7 @@ import type { AppState, Negotiation, Proposal, Role, Task } from "./types";
 
 type Run = (op: string, payload?: Record<string, unknown>) => Promise<boolean>;
 type Breakdown = (task: Task) => Promise<boolean>;
+type AiState = { taskId: string; phase: "working" | "done" } | null;
 function Badge({ load, capacity }: { load: number; capacity: number }) {
   const s = status(load, capacity);
   return <span className={`badge ${s.tone}`}>{s.label}</span>;
@@ -372,6 +379,7 @@ export default function App() {
       setBusy(false);
     }
   };
+  const [ai, setAi] = useState<AiState>(null);
   const runBreakdown: Breakdown = async (task) => {
     if (!session) {
       navigate("/sign-in");
@@ -382,6 +390,7 @@ export default function App() {
       return false;
     }
     setBusy(true);
+    setAi({ taskId: task.id, phase: "working" });
     try {
       const { steps, model, source } = await generateSteps(
         task,
@@ -394,6 +403,8 @@ export default function App() {
         query.data.workspace.version,
       );
       cache.setQueryData(["workspace", session.user.id], updated);
+      setAi({ taskId: task.id, phase: "done" });
+      setTimeout(() => setAi(null), 3000);
       setNotice(
         source === "mock"
           ? `Demo breakdown added ${steps.length} steps to ${task.title}. LLM API is off.`
@@ -407,6 +418,7 @@ export default function App() {
           : "The task could not be broken down. Please try again.",
         "error",
       );
+      setAi(null);
       void query.refetch();
       return false;
     } finally {
@@ -647,6 +659,7 @@ export default function App() {
                   <TasksPage
                     state={state}
                     busy={busy}
+                    ai={ai}
                     onBreakdown={runBreakdown}
                   />
                 }
@@ -657,6 +670,7 @@ export default function App() {
                   <TaskDetail
                     state={state}
                     busy={busy}
+                    ai={ai}
                     run={run}
                     onBreakdown={runBreakdown}
                   />
@@ -1260,20 +1274,63 @@ function TeamsMark() {
     </svg>
   );
 }
+/* Claude-style "working" indicator: a pulsing orb, a shimmering status line that
+   moves through the phases of the job, and skeleton rows where steps will appear. */
+const AI_PHASES = (h: number) => [
+  "Reading the task",
+  `Sizing steps to ${hours(h)}h`,
+  "Drafting steps",
+  "Checking the plan",
+];
+function AiLabel() {
+  return (
+    <span className="ai-shimmer" aria-live="polite">
+      Breaking down…
+    </span>
+  );
+}
+function AiWorking({ hours: h }: { hours: number }) {
+  const phases = AI_PHASES(h);
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(
+      () => setI((n) => Math.min(n + 1, phases.length - 1)),
+      1500,
+    );
+    return () => clearInterval(timer);
+  }, [phases.length]);
+  return (
+    <div className="ai-working" role="status" aria-live="polite">
+      <div className="ai-status">
+        <span className="ai-orb" aria-hidden="true" />
+        <span className="ai-shimmer">{phases[i]}…</span>
+      </div>
+      <ul className="ai-skeleton" aria-hidden="true">
+        <li style={{ width: "62%" }} />
+        <li style={{ width: "74%" }} />
+        <li style={{ width: "55%" }} />
+        <li style={{ width: "68%" }} />
+      </ul>
+    </div>
+  );
+}
 function TaskRow({
   task,
   state,
   busy,
+  ai,
   onBreakdown,
 }: {
   task: Task;
   state: AppState;
   busy: boolean;
+  ai: AiState;
   onBreakdown: Breakdown;
 }) {
   const subs = state.subtasks.filter((s) => s.task_id === task.id),
     done = subs.filter((s) => s.completed).length,
-    needsSteps = !subs.length && active(task);
+    needsSteps = !subs.length && active(task),
+    working = ai?.taskId === task.id && ai.phase === "working";
   return (
     <div className="task-row">
       <div className="task-main">
@@ -1300,11 +1357,11 @@ function TaskRow({
       <div className="task-progress">
         {needsSteps ? (
           <button
-            className="btn secondary breakdown-btn"
+            className={`btn secondary breakdown-btn ${working ? "is-working" : ""}`}
             disabled={busy}
             onClick={() => onBreakdown(task)}
           >
-            AI breakdown
+            {working ? <AiLabel /> : "AI breakdown"}
           </button>
         ) : (
           <>
@@ -1336,12 +1393,15 @@ const TASK_FILTERS = [
 function TasksPage({
   state,
   busy,
+  ai,
   onBreakdown,
 }: {
   state: AppState;
   busy: boolean;
+  ai: AiState;
   onBreakdown: Breakdown;
 }) {
+  const navigate = useNavigate();
   const [filter, setFilter] = useState<(typeof TASK_FILTERS)[number]>("All");
   const tasks = state.tasks
     .filter(
@@ -1381,7 +1441,11 @@ function TasksPage({
               task={t}
               state={state}
               busy={busy}
-              onBreakdown={onBreakdown}
+              ai={ai}
+              onBreakdown={(task) => {
+                navigate(`/employee/tasks/${task.id}`);
+                return onBreakdown(task);
+              }}
             />
           ))
         ) : (
@@ -1397,11 +1461,13 @@ function TasksPage({
 function TaskDetail({
   state,
   busy,
+  ai,
   run,
   onBreakdown,
 }: {
   state: AppState;
   busy: boolean;
+  ai: AiState;
   run: Run;
   onBreakdown: Breakdown;
 }) {
@@ -1417,7 +1483,9 @@ function TaskDetail({
   if (!task) return <NotFound />;
   const subs = state.subtasks.filter((s) => s.task_id === id),
     deps = state.dependencies.filter((d) => d.task_id === id),
-    disabled = !active(task);
+    disabled = !active(task),
+    working = ai !== null && ai.taskId === id && ai.phase === "working",
+    reveal = ai !== null && ai.taskId === id && ai.phase === "done";
   return (
     <>
       <Link className="back-link" to="/employee/tasks">
@@ -1471,19 +1539,25 @@ function TaskDetail({
           ) : (
             !disabled && (
               <button
-                className="btn secondary"
+                className={`btn secondary ${working ? "is-working" : ""}`}
                 disabled={busy}
                 onClick={() => onBreakdown(task)}
               >
-                AI breakdown
+                {working ? <AiLabel /> : "AI breakdown"}
               </button>
             )
           )}
         </div>
         <div className="subtask-list">
-          {subs.length ? (
-            subs.map((s) => (
-              <label key={s.id} className={s.completed ? "done" : ""}>
+          {working ? (
+            <AiWorking hours={task.personalized_hours} />
+          ) : subs.length ? (
+            subs.map((s, i) => (
+              <label
+                key={s.id}
+                className={`${s.completed ? "done" : ""} ${reveal ? "reveal" : ""}`}
+                style={reveal ? ({ "--i": i } as CSSProperties) : undefined}
+              >
                 <input
                   type="checkbox"
                   checked={s.completed}
