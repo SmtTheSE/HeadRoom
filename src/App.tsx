@@ -943,24 +943,46 @@ function Dashboard({
     .slice(0, 3);
   const resolved =
     state.negotiations.some((n) => n.status === "approved") && load <= 30;
+  const current = focus[0],
+    parent = current && state.tasks.find((t) => t.id === current.task_id);
   return (
     <>
-      <PageHeading
-        eyebrow={`${longDate.format(now)} · ${clock.format(now)} · ${userName}`}
-        title={focus[0]?.title ?? "No open focus items"}
-        subtitle={
-          focus[0] ? (
-            <span className="current-task">
-              Current task · Main task:{" "}
-              <strong>
-                {state.tasks.find((t) => t.id === focus[0].task_id)?.title}
-              </strong>
-            </span>
+      <div className="page-heading current">
+        <div>
+          <div className="eyebrow">
+            {greeting(now)}, {userName} · {longDate.format(now)} ·{" "}
+            {clock.format(now)}
+          </div>
+          <span className="overline">Current task</span>
+          <h1>{current ? current.title : "No open focus items"}</h1>
+          {current && parent ? (
+            <p className="current-meta">
+              <span className="current-label">Main task:</span>
+              <Link to={`/employee/tasks/${parent.id}`}>{parent.title}</Link>
+              <span className="bullet">·</span>
+              {current.minutes >= 60
+                ? `${hours(current.minutes / 60)}h`
+                : `${current.minutes} min`}
+              <span className="bullet">·</span>
+              Due {due(parent.deadline, true)}
+            </p>
           ) : (
-            "All focus steps for today are complete."
-          )
-        }
-      />
+            <p className="current-meta">
+              All focus steps for today are complete.
+            </p>
+          )}
+        </div>
+        {current && (
+          <button
+            className="btn primary"
+            disabled={busy}
+            onClick={() => run("subtask", { id: current.id })}
+          >
+            <Check size={16} />
+            Mark step complete
+          </button>
+        )}
+      </div>
       <TaskInbox state={state} busy={busy} run={run} />
       {resolved && (
         <div className="banner success">
