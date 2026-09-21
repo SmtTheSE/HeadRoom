@@ -151,13 +151,6 @@ strong {
   margin: 0 5px;
   opacity: 0.5;
 }
-.tiny-dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--green-bar);
-}
 .text-link {
   display: inline-flex;
   gap: 6px;
@@ -673,12 +666,6 @@ textarea:focus-visible {
   white-space: nowrap;
   text-transform: capitalize;
 }
-.status-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: currentColor;
-}
 .badge.good {
   background: var(--green-bg);
   color: var(--green-text);
@@ -860,32 +847,6 @@ td:last-child {
   color: var(--ink);
   font-weight: 600;
 }
-.task-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-sm);
-  background: var(--green-bg);
-  color: var(--green-text);
-}
-.task-mark.presentation {
-  background: var(--blue-bg);
-  color: var(--blue-text);
-}
-.task-mark.research {
-  background: #ece8f3;
-  color: #5e4a86;
-}
-.task-mark.testing {
-  background: var(--amber-bg);
-  color: var(--amber-text);
-}
-.task-mark.analytics {
-  background: #e0ecec;
-  color: #2f5d54;
-}
 .risk-text {
   display: block;
   margin-top: 2px;
@@ -939,6 +900,11 @@ td:last-child {
 }
 .task-estimate small {
   display: block;
+  font-size: 13px;
+  color: var(--muted);
+}
+.task-progress {
+  width: 96px;
   font-size: 13px;
   color: var(--muted);
 }
@@ -1151,7 +1117,33 @@ td:last-child {
   font-weight: 500;
   color: var(--ink);
 }
-.request-row:hover strong {
+.proposal-title {
+  display: block;
+}
+.proposal-title > strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.proposal-title > span,
+.request-row > div .proposal-title > span {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.proposal-title s {
+  text-decoration-color: var(--line-strong);
+}
+.proposal-title b {
+  font-weight: 600;
+  color: var(--ink);
+}
+.request-row:hover .proposal-title > strong {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -1159,16 +1151,6 @@ td:last-child {
   display: block;
   margin-top: 2px;
   font-size: 13px;
-  color: var(--muted);
-}
-.request-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-sm);
-  background: var(--oat);
   color: var(--muted);
 }
 
@@ -1322,27 +1304,150 @@ td:last-child {
   gap: 8px;
   margin-top: 24px;
 }
-.google {
-  margin-top: 20px;
-  padding: 13px;
-  border: 1px solid var(--line-strong);
-  background: var(--surface);
-  color: var(--ink);
-}
-.google:hover:not(:disabled) {
-  background: var(--paper);
-}
-.google-g {
-  font-size: 18px;
-  font-weight: 700;
-  color: #4285f4;
-}
-.google svg {
-  margin-left: auto;
-}
 .fine-print {
   margin-top: 14px;
   text-align: center;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+/* ---------- sign-in page ---------- */
+.signin {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--paper);
+}
+.signin-top {
+  padding: 22px 40px;
+}
+.signin-top .brand {
+  margin: 0;
+}
+.signin-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 48px;
+  align-items: center;
+  flex: 1;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 24px 40px 64px;
+}
+.signin-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.signin-copy h1 {
+  max-width: 20ch;
+  font-size: 44px;
+  line-height: 1.12;
+  text-wrap: balance;
+}
+.signin-sub {
+  margin-top: 12px;
+  font-size: 16px;
+  color: var(--text);
+}
+.signin-card {
+  width: 100%;
+  max-width: 400px;
+  margin-top: 28px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.btn.provider {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--ink);
+  color: #fff;
+  font-weight: 500;
+}
+.btn.provider:hover:not(:disabled) {
+  background: #3a3936;
+}
+.btn.provider .g-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+}
+.signin-or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.signin-or::before,
+.signin-or::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--line);
+}
+.signin-foot {
+  margin-top: 24px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.signin-visual {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  justify-content: center;
+  min-height: 520px;
+  padding: 40px;
+  border-radius: 24px;
+  background:
+    radial-gradient(120% 80% at 100% 0%, #e6ecd9 0%, transparent 60%),
+    var(--oat);
+}
+.preview-card {
+  padding: 24px;
+  border-radius: var(--radius);
+  background: var(--brand);
+  color: #fff;
+  box-shadow: 0 18px 40px rgb(23 59 64 / 0.25);
+}
+.preview-card .capacity-number {
+  font-size: 48px;
+}
+.preview-card .progress {
+  margin-top: 18px;
+}
+.preview-list {
+  padding: 8px 20px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.preview-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+  color: var(--ink);
+}
+.preview-row:last-child {
+  border-bottom: 0;
+}
+.preview-row small {
+  margin-left: auto;
   font-size: 13px;
   color: var(--muted);
 }
@@ -1370,11 +1475,9 @@ td:last-child {
   border-color: var(--ink);
   background: var(--paper);
 }
-.proposal-options strong {
-  display: block;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--ink);
+.proposal-options > button > span:not(.radio-mark):not(.recommended) {
+  flex: 1;
+  min-width: 0;
 }
 .proposal-options small {
   display: block;
@@ -1602,6 +1705,21 @@ td:last-child {
   .page-heading {
     flex-direction: column;
     margin-bottom: 22px;
+  }
+  .signin-top {
+    padding: 16px;
+  }
+  .signin-main {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    padding: 8px 16px 48px;
+  }
+  .signin-copy h1 {
+    font-size: 32px;
+  }
+  .signin-visual {
+    min-height: 0;
+    padding: 20px;
   }
   .section {
     margin-top: 28px;

@@ -14,11 +14,7 @@ import type { Session } from "@supabase/supabase-js";
 import {
   ArrowLeft,
   ArrowRight,
-  ArrowUpRight,
-  CalendarDays,
   Check,
-  CheckCheck,
-  Clock3,
   Gauge,
   LayoutDashboard,
   ListTodo,
@@ -27,11 +23,7 @@ import {
   MessageSquare,
   Plus,
   RotateCcw,
-  ShieldCheck,
-  Users,
   X,
-  AlertCircle,
-  CheckCircle2,
 } from "lucide-react";
 import { action, loadState, supabase } from "./data";
 import { previewState } from "./seed";
@@ -55,8 +47,50 @@ function Badge({ load, capacity }: { load: number; capacity: number }) {
   const s = status(load, capacity);
   return (
     <span className={`badge ${s.tone}`}>
-      <span className="status-dot" />
       {s.label}
+    </span>
+  );
+}
+/** Structured description of a proposal: which task, what changes, from → to. */
+function describeProposal(state: AppState, p: Proposal) {
+  const task = state.tasks.find((t) => t.id === p.task_id);
+  const title = task?.title ?? "Task";
+  if (!task) return { title, change: "Adjustment", from: "", to: p.label };
+  if (p.type === "deadline")
+    return {
+      title,
+      change: "Deadline",
+      from: due(task.deadline, true),
+      to: due(p.deadline!, true),
+    };
+  if (p.type === "scope")
+    return {
+      title,
+      change: "Scope",
+      from: `${hours(task.personalized_hours)}h`,
+      to: `${hours(Math.max(0, task.personalized_hours - p.scope_hours!))}h`,
+    };
+  return {
+    title,
+    change: "Assignee",
+    from: person(state, task.employee_id).name.split(" ")[0],
+    to: person(state, p.employee_id!).name.split(" ")[0],
+  };
+}
+function proposalTitle(state: AppState, p: Proposal) {
+  const d = describeProposal(state, p);
+  return `${d.title} · ${d.change}: ${d.from} → ${d.to}`;
+}
+function ProposalTitle({ state, proposal }: { state: AppState; proposal: Proposal }) {
+  const d = describeProposal(state, proposal);
+  return (
+    <span className="proposal-title">
+      <strong>{d.title}</strong>
+      <span>
+        {d.change}: <s>{d.from}</s>
+        <ArrowRight size={13} aria-label="to" />
+        <b>{d.to}</b>
+      </span>
     </span>
   );
 }
@@ -166,7 +200,6 @@ export default function App() {
       text: string;
       tone: "success" | "error";
     } | null>(null),
-    [authOpen, setAuthOpen] = useState(false),
     [resetOpen, setResetOpen] = useState(false);
   const [compose, setCompose] = useState<{
     mode: "request" | "counter" | "revise";
@@ -213,6 +246,10 @@ export default function App() {
       data.subscription.unsubscribe();
     };
   }, []);
+  useEffect(() => {
+    if (session && location.pathname === "/sign-in")
+      navigate("/employee/dashboard", { replace: true });
+  }, [session, location.pathname]);
   const query = useQuery({
     queryKey: ["workspace", session?.user.id],
     queryFn: loadState,
@@ -248,7 +285,7 @@ export default function App() {
   }, [notice]);
   const run: Run = async (op, payload = {}) => {
     if (!session) {
-      setAuthOpen(true);
+      navigate("/sign-in");
       return false;
     }
     if (!query.data) {
@@ -318,6 +355,24 @@ export default function App() {
     (n) => n.status === "pending" || n.status === "counter_proposed",
   ).length;
   const p = person(state, role === "employee" ? "alex" : "sarah");
+  const toast = notice && (
+    <div
+      className={`toast ${notice.tone}`}
+      role={notice.tone === "error" ? "alert" : "status"}
+    >
+      <span>{notice.text}</span>
+      <button onClick={() => setNotice("")} aria-label="Dismiss message">
+        <X size={16} />
+      </button>
+    </div>
+  );
+  if (location.pathname === "/sign-in")
+    return (
+      <>
+        <SignInPage state={state} busy={busy || !ready} onGoogle={signIn} />
+        {toast}
+      </>
+    );
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -363,7 +418,6 @@ export default function App() {
       <div className="workspace">
         <header className="topbar">
           <span className="topbar-status">
-            <span className="tiny-dot" />
             {session
               ? "Private demo workspace"
               : "Sample workspace · sign in to save changes"}
@@ -381,7 +435,9 @@ export default function App() {
               className="btn ghost"
               aria-label="Reset demo"
               disabled={busy}
-              onClick={() => (session ? setResetOpen(true) : setAuthOpen(true))}
+              onClick={() =>
+                session ? setResetOpen(true) : navigate("/sign-in")
+              }
             >
               <RotateCcw size={15} />
               <span>Reset demo</span>
@@ -396,16 +452,15 @@ export default function App() {
                 <LogOut size={18} />
               </button>
             ) : (
-              <button className="btn primary" onClick={() => setAuthOpen(true)}>
+              <Link className="btn primary" to="/sign-in">
                 Sign in
-              </button>
+              </Link>
             )}
           </div>
         </header>
         <main>
           {ready && session && query.isError ? (
             <div className="connection-error">
-              <AlertCircle size={30} />
               <h1>Let’s connect your workspace</h1>
               <p>
                 {query.error.message.includes("headroom_state")
@@ -489,42 +544,7 @@ export default function App() {
           )}
         </main>
       </div>
-      {notice && (
-        <div
-          className={`toast ${notice.tone}`}
-          role={notice.tone === "error" ? "alert" : "status"}
-        >
-          {notice.tone === "error" ? (
-            <AlertCircle size={18} />
-          ) : (
-            <CheckCircle2 size={18} />
-          )}
-          <span>{notice.text}</span>
-          <button onClick={() => setNotice("")} aria-label="Dismiss message">
-            <X size={16} />
-          </button>
-        </div>
-      )}
-      {authOpen && (
-        <Modal
-          title="A little room to do your best work."
-          onClose={() => setAuthOpen(false)}
-        >
-          <p className="muted">
-            Sign in to save your tasks, explore your capacity, and try the
-            complete employee-to-manager workflow in a private demo workspace
-            with synthetic data.
-          </p>
-          <button className="btn google full" disabled={busy} onClick={signIn}>
-            <span className="google-g">G</span>Continue with Google
-            <ArrowRight size={18} />
-          </button>
-          <p className="fine-print">
-            Google is used for sign-in only. No access to your email or
-            calendar.
-          </p>
-        </Modal>
-      )}
+      {toast}
       {resetOpen && (
         <Modal title="Start a fresh demo?" onClose={() => setResetOpen(false)}>
           <p className="muted">
@@ -564,6 +584,115 @@ export default function App() {
     </div>
   );
 }
+function SignInPage({
+  state,
+  busy,
+  onGoogle,
+}: {
+  state: AppState;
+  busy: boolean;
+  onGoogle: () => void;
+}) {
+  const load = workload(state.tasks),
+    p = person(state, "alex");
+  const steps = state.subtasks.filter((s) => !s.completed).slice(0, 3);
+  return (
+    <div className="signin">
+      <header className="signin-top">
+        <Link className="brand" to="/employee/dashboard">
+          <span className="brand-mark">
+            h<span>·</span>
+          </span>
+          headroom<span className="brand-period">.</span>
+        </Link>
+      </header>
+      <main className="signin-main">
+        <section className="signin-copy">
+          <h1>A little room to do your best work.</h1>
+          <p className="signin-sub">
+            Understand your workload and agree on a realistic week, together.
+          </p>
+          <div className="signin-card">
+            <button className="btn provider" disabled={busy} onClick={onGoogle}>
+              <span className="g-chip">
+                {busy ? (
+                  <LoaderCircle className="spin" size={14} color="#1f1e1c" />
+                ) : (
+                  <GoogleMark />
+                )}
+              </span>
+              Continue with Google
+            </button>
+            <div className="signin-or" aria-hidden="true">
+              <span>or</span>
+            </div>
+            <Link className="btn secondary full" to="/employee/dashboard">
+              Explore the sample workspace
+              <ArrowRight size={16} />
+            </Link>
+            <p className="fine-print">
+              By continuing, you get a private demo workspace with synthetic
+              data. Google is used for sign-in only — no access to your email
+              or calendar.
+            </p>
+          </div>
+          <p className="signin-foot">
+            Capacity is a planning tool, not a measure of your value.
+          </p>
+        </section>
+        <aside className="signin-visual" aria-hidden="true">
+          <div className="preview-card">
+            <span className="capacity-label">This week</span>
+            <div className="capacity-number">
+              {hours(load)}
+              <span> / {p.capacity}h</span>
+            </div>
+            <Progress load={load} capacity={p.capacity} dark />
+            <p className="capacity-note">
+              <strong>{hours(p.capacity - load)}h of breathing room.</strong>{" "}
+              Meetings, breaks, and life need space too.
+            </p>
+          </div>
+          <div className="preview-list">
+            {steps.map((s, i) => (
+              <div className="preview-row" key={s.id}>
+                <span className={`check-circle ${i === 0 ? "first" : ""}`} />
+                <span>{s.title}</span>
+                <small>
+                  {s.minutes >= 60
+                    ? `${hours(s.minutes / 60)}h`
+                    : `${s.minutes} min`}
+                </small>
+              </div>
+            ))}
+          </div>
+        </aside>
+      </main>
+    </div>
+  );
+}
+function GoogleMark() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 18 18" aria-hidden="true">
+      <path
+        fill="#4285F4"
+        d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62Z"
+      />
+      <path
+        fill="#34A853"
+        d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.83.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18Z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M3.97 10.72A5.41 5.41 0 0 1 3.68 9c0-.6.1-1.18.29-1.72V4.95H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.05l3.01-2.33Z"
+      />
+      <path
+        fill="#EA4335"
+        d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58A9 9 0 0 0 9 0 9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58Z"
+      />
+    </svg>
+  );
+}
 function PageHeading({
   eyebrow,
   title,
@@ -601,7 +730,6 @@ function CapacityCard({
     <section className="capacity-hero" aria-label="This week’s workload">
       <div className="capacity-figure">
         <span className="capacity-label">
-          <Gauge size={15} />
           This week
         </span>
         <div className="capacity-number">
@@ -632,7 +760,7 @@ function CapacityCard({
           to="/employee/capacity"
           aria-label="View capacity breakdown"
         >
-          <ArrowUpRight size={20} />
+          <ArrowRight size={18} />
         </Link>
       )}
     </section>
@@ -678,7 +806,6 @@ function Dashboard({
       />
       {resolved && (
         <div className="banner success">
-          <CheckCircle2 size={21} />
           <div>
             <strong>Conflict resolved. You have room to focus.</strong>
             <span>The agreed adjustment is reflected in your workload.</span>
@@ -690,7 +817,6 @@ function Dashboard({
       )}
       {load > 30 && (
         <div className="banner conflict">
-          <AlertCircle size={22} />
           <div>
             <strong>Your week needs a little more room.</strong>
             <span>
@@ -733,11 +859,11 @@ function Dashboard({
                 <Link to={`/employee/tasks/${s.task_id}`}>
                   <strong>{s.title}</strong>
                   <span>
+                    Main task:{" "}
                     {state.tasks.find((t) => t.id === s.task_id)?.title}
                   </span>
                 </Link>
                 <span className="time-pill">
-                  <Clock3 size={13} />
                   {s.minutes >= 60
                     ? `${hours(s.minutes / 60)}h`
                     : `${s.minutes} min`}
@@ -746,7 +872,6 @@ function Dashboard({
             ))
           ) : (
             <div className="empty">
-              <CheckCheck />
               <p>All your focus steps are complete.</p>
               <Link to="/employee/tasks">See your tasks</Link>
             </div>
@@ -757,7 +882,7 @@ function Dashboard({
         <div className="section-head">
           <h2>Coming up this week</h2>
           <Link className="text-link" to="/employee/tasks">
-            View all <ArrowUpRight size={16} />
+            View all
           </Link>
         </div>
         <div className="table-wrap">
@@ -774,9 +899,6 @@ function Dashboard({
                 <tr key={t.id}>
                   <td>
                     <Link to={`/employee/tasks/${t.id}`}>
-                      <span className={`task-mark ${t.category.toLowerCase()}`}>
-                        <ListTodo size={17} />
-                      </span>
                       <span>
                         {t.title}
                         {risk(t, state) && (
@@ -795,10 +917,7 @@ function Dashboard({
       </section>
       <section className="section demo-row">
         <div>
-          <span className="eyebrow">
-            <span className="tiny-dot" />
-            Demo scenario
-          </span>
+          <span className="eyebrow">Demo scenario</span>
           <h3>
             {draft
               ? "A new request just came in."
@@ -823,9 +942,6 @@ function TaskRow({ task, state }: { task: Task; state: AppState }) {
     done = subs.filter((s) => s.completed).length;
   return (
     <Link className="task-row" to={`/employee/tasks/${task.id}`}>
-      <span className={`task-mark ${task.category.toLowerCase()}`}>
-        <ListTodo size={19} />
-      </span>
       <div className="task-main">
         <strong>{task.title}</strong>
         <span>
@@ -908,7 +1024,6 @@ function TasksPage({ state }: { state: AppState }) {
           tasks.map((t) => <TaskRow key={t.id} task={t} state={state} />)
         ) : (
           <div className="empty">
-            <CheckCircle2 />
             <h3>Nothing here right now.</h3>
             <p>Try another filter to see the rest of your work.</p>
           </div>
@@ -1351,13 +1466,13 @@ function ManagerDashboard({ state }: { state: AppState }) {
         <div className="section-head">
           <h2>Workload requests</h2>
           <Link className="text-link" to="/manager/negotiations">
-            View all <ArrowRight size={16} />
+            View all
           </Link>
         </div>
         {state.negotiations.length ? (
           state.negotiations
             .slice(0, 3)
-            .map((n) => <RequestRow key={n.id} n={n} role="manager" />)
+            .map((n) => <RequestRow key={n.id} n={n} role="manager" state={state} />)
         ) : (
           <p className="muted">
             No requests yet. New conversations will appear here.
@@ -1365,7 +1480,6 @@ function ManagerDashboard({ state }: { state: AppState }) {
         )}
       </section>
       <p className="privacy-note">
-        <ShieldCheck size={16} />
         You see confirmed work, capacity, and shared requests. Personal notes
         and health information are never part of this view.
       </p>
@@ -1411,7 +1525,7 @@ function EmployeeDetail({ state }: { state: AppState }) {
       <section className="section">
         <h2>Shared workload requests</h2>
         {requests.length ? (
-          requests.map((n) => <RequestRow key={n.id} n={n} role="manager" />)
+          requests.map((n) => <RequestRow key={n.id} n={n} role="manager" state={state} />)
         ) : (
           <p className="muted">No requests for this teammate.</p>
         )}
@@ -1419,14 +1533,19 @@ function EmployeeDetail({ state }: { state: AppState }) {
     </>
   );
 }
-function RequestRow({ n, role }: { n: Negotiation; role: Role }) {
+function RequestRow({
+  n,
+  role,
+  state,
+}: {
+  n: Negotiation;
+  role: Role;
+  state: AppState;
+}) {
   return (
     <Link className="request-row" to={`/${role}/negotiations/${n.id}`}>
-      <span className="request-icon">
-        <MessageSquare size={20} />
-      </span>
       <div>
-        <strong>{n.proposal.label}</strong>
+        <ProposalTitle state={state} proposal={n.proposal} />
         <span>Alex Morgan · Sarah Lee · Revision {n.revision}</span>
       </div>
       <span
@@ -1480,10 +1599,9 @@ function Requests({
       />
       <div className="request-list">
         {list.length ? (
-          list.map((n) => <RequestRow key={n.id} n={n} role={role} />)
+          list.map((n) => <RequestRow key={n.id} n={n} role={role} state={state} />)
         ) : (
           <div className="empty">
-            <MessageSquare size={32} />
             <h3>A little conversation can make room.</h3>
             <p>
               No {filter === "All" ? "" : filter.toLowerCase() + " "}requests
@@ -1536,7 +1654,6 @@ function ProposalImpact({
       </div>
       {proposal.type === "deadline" && (
         <p>
-          <CalendarDays size={15} />
           {due(task.deadline, true)} → {due(proposal.deadline!, true)}. Next
           week: {hours(workload(after, "alex", true))} / 30h.
         </p>
@@ -1551,7 +1668,6 @@ function ProposalImpact({
       )}
       {other && (
         <p>
-          <Users size={15} />
           {other.name}: {hours(workload(after, other.id))} / {other.capacity}h
           after reassignment.
         </p>
@@ -1615,7 +1731,7 @@ function Composer({
           >
             <span className="radio-mark">{selected === i && <span />}</span>
             <span>
-              <strong>{o.label}</strong>
+              <ProposalTitle state={state} proposal={o} />
               <small>
                 {hours(
                   workload(state.tasks) - workload(applyPreview(state, o)),
@@ -1654,11 +1770,7 @@ function Composer({
                   onClose();
               }}
             >
-              {busy ? (
-                <LoaderCircle className="spin" size={16} />
-              ) : (
-                <MessageSquare size={16} />
-              )}{" "}
+              {busy && <LoaderCircle className="spin" size={16} />}
               {mode === "counter" ? "Send counter-proposal" : "Send to Sarah"}
             </button>
           </div>
@@ -1698,7 +1810,7 @@ function RequestDetail({
       </Link>
       <PageHeading
         eyebrow="Alex Morgan ↔ Sarah Lee"
-        title={n.proposal.label}
+        title={proposalTitle(state, n.proposal)}
         subtitle={`Revision ${n.revision} · ${n.status.replace("_", " ")}`}
       />
       <section className="section">
@@ -1707,7 +1819,6 @@ function RequestDetail({
           <ProposalImpact state={state} proposal={n.proposal} />
         ) : (
           <div className="resolved-summary">
-            <CheckCircle2 size={25} />
             <p>
               {n.status === "approved"
                 ? "This adjustment was approved and applied."
