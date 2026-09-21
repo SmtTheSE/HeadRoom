@@ -1005,24 +1005,10 @@ function Dashboard({
                   <Check size={16} />
                 </button>
                 <Link to={`/employee/tasks/${s.task_id}`}>
-                  <strong>
-                    {s.title}
-                    {i === 0 && (
-                      <span className="badge good">Current task</span>
-                    )}
-                  </strong>
+                  <strong>{s.title}</strong>
                   <span>
-                    {i === 0 ? (
-                      <>
-                        {state.tasks.find((t) => t.id === s.task_id)?.title}
-                        <span className="badge blue">Main task</span>
-                      </>
-                    ) : (
-                      <>
-                        Main task:{" "}
-                        {state.tasks.find((t) => t.id === s.task_id)?.title}
-                      </>
-                    )}
+                    Main task:{" "}
+                    {state.tasks.find((t) => t.id === s.task_id)?.title}
                   </span>
                 </Link>
                 <span className="time-pill">

@@ -878,11 +878,6 @@ textarea:focus-visible {
   font-size: 13px;
   color: var(--muted);
 }
-.focus-item .badge {
-  display: inline-flex;
-  margin-left: 8px;
-  vertical-align: 1px;
-}
 .check-circle {
   display: flex;
   align-items: center;
