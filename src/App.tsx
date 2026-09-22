@@ -1018,7 +1018,9 @@ export default function App() {
                   <Dashboard
                     state={state}
                     busy={busy}
+                    ai={ai}
                     run={run}
+                    onBreakdown={runBreakdown}
                     resolve={() => setCompose({ mode: "request" })}
                     userName={firstName(session, "Alex")}
                   />
@@ -1612,13 +1614,17 @@ const SCHEDULED_TASKS = [
 function Dashboard({
   state,
   busy,
+  ai,
   run,
+  onBreakdown,
   resolve,
   userName,
 }: {
   state: AppState;
   busy: boolean;
+  ai: AiState;
   run: Run;
+  onBreakdown: Breakdown;
   resolve: () => void;
   userName: string;
 }) {
@@ -1716,6 +1722,8 @@ function Dashboard({
                 steps.length ? (completedSteps / steps.length) * 100 : 0,
               );
               const isCurrentTask = currentTask?.id === task.id;
+              const working =
+                ai?.taskId === task.id && ai.phase === "working";
               return (
                 <div
                   className={`task-focus-group ${isCurrentTask ? "current" : ""}`}
@@ -1762,27 +1770,16 @@ function Dashboard({
                           Start
                         </Link>
                       )}
-                      {taskIndex > 0 && (
-                        <button
-                          type="button"
-                          className="btn secondary choose-focus"
-                          onClick={() => setSelectedTaskId(task.id)}
-                        >
-                          Choose
-                        </button>
-                      )}
-                      {steps.length > 0 && (
-                        <button
-                          type="button"
-                          className={`task-expand ${expanded ? "expanded" : ""}`}
-                          aria-expanded={expanded}
-                          aria-controls={`task-steps-${task.id}`}
-                          aria-label={`${expanded ? "Hide" : "Show"} steps for ${task.title}`}
-                          onClick={() => toggleTask(task.id)}
-                        >
-                          <ChevronDown size={19} />
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        className={`task-expand ${expanded ? "expanded" : ""}`}
+                        aria-expanded={expanded}
+                        aria-controls={`task-steps-${task.id}`}
+                        aria-label={`${expanded ? "Hide" : "Show"} steps for ${task.title}`}
+                        onClick={() => toggleTask(task.id)}
+                      >
+                        <ChevronDown size={19} />
+                      </button>
                     </div>
                   </div>
                   {expanded && (
@@ -1790,43 +1787,68 @@ function Dashboard({
                       className="task-focus-steps"
                       id={`task-steps-${task.id}`}
                     >
-                      {steps.map((step) => {
-                        const stepIsCurrent = currentStep?.id === step.id;
-                        return (
-                          <div
-                            className={`task-focus-step ${step.completed ? "done" : ""}`}
-                            key={step.id}
-                          >
-                            <span>{step.title}</span>
-                            <button
-                              type="button"
-                              className={`step-check ${step.completed ? "checked" : ""} ${stepIsCurrent ? "current" : ""}`}
-                              aria-label={`${step.completed ? "Reopen" : "Complete"} ${step.title}`}
-                              aria-pressed={step.completed}
-                              disabled={busy}
-                              onClick={() =>
-                                run(
-                                  "subtask",
-                                  { id: step.id },
-                                  step.completed
-                                    ? "Step reopened."
-                                    : stepDoneMessage(steps, step.id),
-                                  () =>
-                                    run(
-                                      "subtask",
-                                      { id: step.id },
-                                      step.completed
-                                        ? "Step completed again."
-                                        : "Step reopened.",
-                                    ),
-                                )
-                              }
+                      {steps.length ? (
+                        steps.map((step) => {
+                          const stepIsCurrent = currentStep?.id === step.id;
+                          return (
+                            <div
+                              className={`task-focus-step ${step.completed ? "done" : ""}`}
+                              key={step.id}
                             >
-                              {step.completed && <Check size={15} />}
-                            </button>
-                          </div>
-                        );
-                      })}
+                              <span>{step.title}</span>
+                              <button
+                                type="button"
+                                className={`step-check ${step.completed ? "checked" : ""} ${stepIsCurrent ? "current" : ""}`}
+                                aria-label={`${step.completed ? "Reopen" : "Complete"} ${step.title}`}
+                                aria-pressed={step.completed}
+                                disabled={busy}
+                                onClick={() =>
+                                  run(
+                                    "subtask",
+                                    { id: step.id },
+                                    step.completed
+                                      ? "Step reopened."
+                                      : stepDoneMessage(steps, step.id),
+                                    () =>
+                                      run(
+                                        "subtask",
+                                        { id: step.id },
+                                        step.completed
+                                          ? "Step completed again."
+                                          : "Step reopened.",
+                                      ),
+                                  )
+                                }
+                              >
+                                {step.completed && <Check size={15} />}
+                              </button>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="task-focus-breakdown">
+                          <span>No steps yet</span>
+                          <button
+                            type="button"
+                            className={`btn secondary breakdown-btn ${working ? "is-working" : ""}`}
+                            disabled={busy}
+                            onClick={() => onBreakdown(task)}
+                          >
+                            {working ? <AiLabel /> : "AI breakdown"}
+                          </button>
+                        </div>
+                      )}
+                      {!isCurrentTask && (
+                        <div className="task-focus-dropdown-actions">
+                          <button
+                            type="button"
+                            className="btn secondary choose-focus"
+                            onClick={() => setSelectedTaskId(task.id)}
+                          >
+                            Choose
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
