@@ -610,6 +610,10 @@ textarea:focus-visible {
   background: var(--brand);
   color: #fff;
 }
+/* every hero tone is dark, so the ink focus ring would vanish here */
+.capacity-hero :focus-visible {
+  outline-color: #fff;
+}
 /* hero tone: the surface itself says how the week is going */
 .capacity-hero.tone-danger {
   background: #4a1a15;
