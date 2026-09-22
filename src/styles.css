@@ -3272,6 +3272,15 @@ html[data-contrast="high"] .segmented button.selected {
   outline: 2px solid #000;
   outline-offset: -2px;
 }
+/* the overview tabs are underlines, not a pill group: a box would clip them */
+html[data-contrast="high"] .task-focus-filter .segmented {
+  border: 0;
+}
+html[data-contrast="high"] .task-focus-filter .segmented button.selected {
+  border-bottom-color: #000;
+  border-bottom-width: 3px;
+  outline: 0;
+}
 html[data-contrast="high"] .capacity-hero,
 html[data-contrast="high"] .preview-card,
 html[data-contrast="high"] .task-focus-group.current {
@@ -3292,7 +3301,8 @@ html[data-contrast="high"] .overview-capacity .capacity-detail-head,
 html[data-contrast="high"] .overview-capacity .capacity-note {
   color: #000;
 }
-html[data-contrast="high"] .progress {
+html[data-contrast="high"] .progress,
+html[data-contrast="high"] .task-focus-progress-track {
   background: #d0d0d0;
   outline: 1px solid #000;
 }
