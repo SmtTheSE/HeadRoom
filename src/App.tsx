@@ -1507,9 +1507,13 @@ function PageHeading({
 function CapacityCard({
   state,
   employee = "alex",
+  resolve,
+  openRequest,
 }: {
   state: AppState;
   employee?: string;
+  resolve?: () => void;
+  openRequest?: Negotiation;
 }) {
   const p = person(state, employee),
     load = workload(state.tasks, employee, false, state.subtasks),
@@ -1530,7 +1534,6 @@ function CapacityCard({
       <div className="capacity-detail">
         <div className="capacity-detail-head">
           <Badge load={load} capacity={p.capacity} />
-          <span>Personalized workload</span>
         </div>
         <Progress load={load} capacity={p.capacity} dark />
         <p className="capacity-note">
@@ -1539,15 +1542,28 @@ function CapacityCard({
               ? `${duration(load - p.capacity)} over capacity.`
               : `${duration(p.capacity - load)} available.`}
           </strong>{" "}
-          {over
-            ? "Review adjustment options to bring this week within capacity."
-            : "Reserved time covers meetings, administration, and breaks."}
+          {!over && "Reserved time covers meetings, administration, and breaks."}
         </p>
       </div>
       {!onCapacityPage && (
-        <Link className="capacity-link" to="/employee/capacity">
-          Details
-        </Link>
+        <div className="capacity-actions">
+          {over &&
+            (openRequest ? (
+              <Link
+                className="btn capacity-resolve"
+                to={`/employee/negotiations/${openRequest.id}`}
+              >
+                View request <ArrowRight size={16} />
+              </Link>
+            ) : resolve ? (
+              <button className="btn capacity-resolve" onClick={resolve}>
+                Resolve workload <ArrowRight size={16} />
+              </button>
+            ) : null)}
+          <Link className="capacity-link" to="/employee/capacity">
+            Details
+          </Link>
+        </div>
       )}
     </section>
   );
@@ -1605,30 +1621,7 @@ function Dashboard({
           </Link>
         </div>
       )}
-      {load > 30 && (
-        <div className="banner conflict">
-          <div>
-            <strong>This week exceeds your capacity.</strong>
-            <span>
-              Workload is {duration(load - 30)} over capacity. Review adjustment
-              options with your superior.
-            </span>
-          </div>
-          {open ? (
-            <Link
-              className="btn danger"
-              to={`/employee/negotiations/${open.id}`}
-            >
-              View request <ArrowRight size={16} />
-            </Link>
-          ) : (
-            <button className="btn danger" onClick={resolve}>
-              Resolve workload <ArrowRight size={16} />
-            </button>
-          )}
-        </div>
-      )}
-      <CapacityCard state={state} />
+      <CapacityCard state={state} resolve={resolve} openRequest={open} />
       <section className="section">
         <div className="section-head">
           <h2>Today’s focus</h2>

@@ -712,6 +712,24 @@ textarea:focus-visible {
 .capacity-link:hover {
   background: rgb(255 255 255 / 0.1);
 }
+.capacity-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+}
+.capacity-resolve {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-color: #ffb2a7;
+  background: #ff8577;
+  color: #3a0f0b;
+}
+.capacity-resolve:hover:not(:disabled) {
+  border-color: #fff;
+  background: #ffa195;
+}
 
 /* deadlines: weight matches urgency */
 .due-chip {
@@ -2800,7 +2818,7 @@ td:last-child {
     gap: 18px;
     padding: 20px;
   }
-  .capacity-link {
+  .capacity-actions {
     position: absolute;
     top: 14px;
     right: 14px;
