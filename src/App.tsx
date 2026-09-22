@@ -1599,6 +1599,10 @@ function Dashboard({
   userName: string;
 }) {
   const now = useNow();
+  const [taskView, setTaskView] = useState<"Priority tasks" | "All tasks">(
+    "Priority tasks",
+  );
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const load = workload(state.tasks, "alex", false, state.subtasks);
   const openRequest = state.negotiations.find((request) =>
     ["pending", "counter_proposed"].includes(request.status),
@@ -1606,15 +1610,26 @@ function Dashboard({
   const urgentTasks = state.tasks
     .filter((t) => active(t) && t.employee_id === "alex")
     .sort(byUrgency);
-  const focusTasks = urgentTasks.filter((task) =>
-    state.subtasks.some((step) => step.task_id === task.id),
+  const priorityCutoff = new Date(
+    `${state.workspace.demo_date}T00:00:00Z`,
   );
-  const currentStep = focusTasks
-    .flatMap((task) =>
-      state.subtasks
-        .filter((step) => step.task_id === task.id && !step.completed)
-        .sort((a, b) => a.position - b.position),
+  priorityCutoff.setUTCDate(priorityCutoff.getUTCDate() + 2);
+  const visibleTasks = urgentTasks.filter(
+    (task) =>
+      taskView === "All tasks" ||
+      Date.parse(task.deadline) < priorityCutoff.getTime(),
+  );
+  const focusTasks = [...visibleTasks].sort((a, b) => {
+    if (a.id === selectedTaskId) return -1;
+    if (b.id === selectedTaskId) return 1;
+    return byUrgency(a, b);
+  });
+  const currentTask = focusTasks[0];
+  const currentStep = state.subtasks
+    .filter(
+      (step) => step.task_id === currentTask?.id && !step.completed,
     )
+    .sort((a, b) => a.position - b.position)
     .at(0);
   const [expandedTasks, setExpandedTasks] = useState<string[]>([]);
   const toggleTask = (taskId: string) =>
@@ -1651,6 +1666,19 @@ function Dashboard({
             {focusTasks.length} {focusTasks.length === 1 ? "task" : "tasks"}
           </span>
         </div>
+        <div className="task-focus-filter">
+          <Segmented
+            label="Task view"
+            options={["Priority tasks", "All tasks"] as const}
+            value={taskView}
+            onChange={setTaskView}
+          />
+          <span className="muted">
+            {taskView === "Priority tasks"
+              ? "Due today or tomorrow"
+              : "Sorted by earliest deadline"}
+          </span>
+        </div>
         <div className="task-focus-list">
           {focusTasks.length ? (
             focusTasks.map((task, taskIndex) => {
@@ -1658,20 +1686,22 @@ function Dashboard({
                 .filter((step) => step.task_id === task.id)
                 .sort((a, b) => a.position - b.position);
               const nextStep = steps.find((step) => !step.completed);
-              const isCurrent = currentStep?.task_id === task.id;
               const expanded = expandedTasks.includes(task.id);
-              const remainingMinutes = steps
-                .filter((step) => !step.completed)
-                .reduce((total, step) => total + step.minutes, 0);
+              const remainingMinutes = steps.length
+                ? steps
+                    .filter((step) => !step.completed)
+                    .reduce((total, step) => total + step.minutes, 0)
+                : Math.round(task.personalized_hours * 60);
               const completedSteps = steps.filter(
                 (step) => step.completed,
               ).length;
               const progressPercent = Math.round(
-                (completedSteps / steps.length) * 100,
+                steps.length ? (completedSteps / steps.length) * 100 : 0,
               );
+              const isCurrentTask = currentTask?.id === task.id;
               return (
                 <div
-                  className={`task-focus-group ${isCurrent ? "current" : ""}`}
+                  className={`task-focus-group ${isCurrentTask ? "current" : ""}`}
                   key={task.id}
                 >
                   <div className="task-focus-row">
@@ -1681,7 +1711,7 @@ function Dashboard({
                         to={`/employee/tasks/${task.id}`}
                       >
                         <strong>{task.title}</strong>
-                        {isCurrent && (
+                        {isCurrentTask && (
                           <span className="current-step-label">Current</span>
                         )}
                       </Link>
@@ -1696,7 +1726,11 @@ function Dashboard({
                         >
                           <span style={{ width: `${progressPercent}%` }} />
                         </div>
-                        <small>{progressPercent}% complete</small>
+                        <small>
+                          {steps.length
+                            ? `${progressPercent}% complete`
+                            : "Breakdown needed"}
+                        </small>
                       </div>
                     </div>
                     <div className="task-focus-actions">
@@ -1711,16 +1745,27 @@ function Dashboard({
                           Start
                         </Link>
                       )}
-                      <button
-                        type="button"
-                        className={`task-expand ${expanded ? "expanded" : ""}`}
-                        aria-expanded={expanded}
-                        aria-controls={`task-steps-${task.id}`}
-                        aria-label={`${expanded ? "Hide" : "Show"} steps for ${task.title}`}
-                        onClick={() => toggleTask(task.id)}
-                      >
-                        <ChevronDown size={19} />
-                      </button>
+                      {taskIndex > 0 && (
+                        <button
+                          type="button"
+                          className="btn secondary choose-focus"
+                          onClick={() => setSelectedTaskId(task.id)}
+                        >
+                          Choose
+                        </button>
+                      )}
+                      {steps.length > 0 && (
+                        <button
+                          type="button"
+                          className={`task-expand ${expanded ? "expanded" : ""}`}
+                          aria-expanded={expanded}
+                          aria-controls={`task-steps-${task.id}`}
+                          aria-label={`${expanded ? "Hide" : "Show"} steps for ${task.title}`}
+                          onClick={() => toggleTask(task.id)}
+                        >
+                          <ChevronDown size={19} />
+                        </button>
+                      )}
                     </div>
                   </div>
                   {expanded && (
@@ -1772,8 +1817,13 @@ function Dashboard({
             })
           ) : (
             <div className="empty">
-              <p>No task steps available.</p>
-              <Link to="/employee/tasks">View tasks</Link>
+              <p>No tasks match this view.</p>
+              <button
+                className="btn secondary"
+                onClick={() => setTaskView("All tasks")}
+              >
+                Show all tasks
+              </button>
             </div>
           )}
         </div>

@@ -1103,6 +1103,15 @@ tr.prio-low td {
 .task-focus-list {
   margin-top: 16px;
 }
+.task-focus-filter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+.task-focus-filter .muted {
+  font-size: 0.8125rem;
+}
 .task-focus-group {
   border-bottom: 1px solid var(--line);
 }
@@ -1191,6 +1200,11 @@ tr.prio-low td {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+.choose-focus {
+  padding: 5px 11px;
+  font-size: 0.8125rem;
+  white-space: nowrap;
 }
 .task-expand,
 .step-check {
@@ -2996,6 +3010,10 @@ td:last-child {
   .task-focus-row {
     align-items: flex-start;
     flex-wrap: wrap;
+  }
+  .task-focus-filter {
+    align-items: flex-start;
+    flex-direction: column;
   }
   .task-focus-main {
     flex-basis: 100%;
