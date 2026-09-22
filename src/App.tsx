@@ -1673,11 +1673,6 @@ function Dashboard({
             value={taskView}
             onChange={setTaskView}
           />
-          <span className="muted">
-            {taskView === "Priority tasks"
-              ? "Due today or tomorrow"
-              : "Sorted by earliest deadline"}
-          </span>
         </div>
         <div className="task-focus-list">
           {focusTasks.length ? (
