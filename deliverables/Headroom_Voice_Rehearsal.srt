@@ -1,0 +1,67 @@
+1
+00:00:00,000 --> 00:00:03,740
+Hello, we're team You Don't Know Us, and this is Headroom.
+
+2
+00:00:04,390 --> 00:00:19,300
+Our focus is neurodivergence, especially employees with ADHD. Our solution is technological, and we focus on Stage Five: on the job, where inclusion needs to work every day.
+
+3
+00:00:20,000 --> 00:00:25,701
+After reviewing the competition brief and listening to end users, we focused on three problems.
+
+4
+00:00:26,351 --> 00:00:34,349
+First, overload. Some employees take on more work than they can realistically manage, sometimes drawn by the novelty of a new task.
+
+5
+00:00:34,999 --> 00:00:47,521
+Second, overwhelm. Keeping track of multiple tasks and deciding where to start can be difficult. One end user specifically described the frustration of having work scattered across different platforms.
+
+6
+00:00:48,171 --> 00:00:54,436
+Third, asking for help. Explaining what support you need can be difficult, especially when you fear judgement.
+
+7
+00:00:55,136 --> 00:01:07,439
+For employees, pressure builds and confidence falls. Managers may only notice when a deadline slips. Organisations risk losing talented people because support arrives too late.
+
+8
+00:01:08,789 --> 00:01:15,747
+These challenges extend beyond ADHD. Many of us recognise them in our own working lives.
+
+9
+00:01:16,347 --> 00:01:24,150
+That is why Headroom is designed for all employees, with specific support for the difficulties employees with ADHD can face.
+
+10
+00:01:25,000 --> 00:01:35,585
+AI assistants already help people break down tasks, plan, and prioritise. Headroom builds on that foundation by connecting personal planning with workplace support.
+
+11
+00:01:36,235 --> 00:01:39,399
+Our product vision adds four capabilities.
+
+12
+00:01:40,099 --> 00:01:54,512
+First, bring work together. Planned integrations with email and messaging platforms would check for potential tasks on the employee's device. The employee approves what enters Headroom, and AI breakdown starts only when requested.
+
+13
+00:01:55,262 --> 00:02:08,540
+Second, learn real capacity. Headroom compares estimates with the time employees confirm they spent on similar tasks. This improves future estimates and flags when planned work exceeds available time.
+
+14
+00:02:09,290 --> 00:02:22,022
+Third, give managers an early signal. Workload and capacity summaries help team leaders spot pressure and offer support. Private conversations and personal calendar details remain private.
+
+15
+00:02:22,772 --> 00:02:40,900
+Finally, make asking for help easier. Headroom suggests practical adjustments, such as extending a deadline, reducing scope, or reassigning work. The employee chooses a proposal and sends it to their manager for review. There's no need to compose a long email or disclose a diagnosis.
+
+16
+00:02:42,000 --> 00:02:53,547
+Together, these features give employees a clear next step, a realistic plan, and a simpler way to ask for support.
+
+17
+00:02:54,597 --> 00:02:59,550
+Now, let's see how that experience works in our prototype.
