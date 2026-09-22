@@ -2359,6 +2359,58 @@ td:last-child {
   font-size: 0.75rem;
   font-weight: 600;
 }
+.manual-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 18px;
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+}
+.manual-form .field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.manual-form .field:first-child {
+  grid-column: 1 / -1;
+}
+.manual-form .field > span {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+.manual-form .field small {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.manual-form select,
+.manual-form input[type="date"],
+.manual-form input[type="number"] {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font: inherit;
+  color: var(--ink);
+}
+.manual-form select:focus-visible,
+.manual-form input:focus-visible {
+  outline-offset: 0;
+  border-color: var(--ink);
+}
+.manual-form .segmented {
+  align-self: flex-start;
+}
+.field-error {
+  grid-column: 1 / -1;
+  font-size: 0.875rem;
+  color: var(--red-text);
+}
 .proposal-impact {
   margin-top: 20px;
   padding: 18px;
@@ -2814,6 +2866,9 @@ td:last-child {
   }
   .modal {
     padding: 22px;
+  }
+  .manual-form {
+    grid-template-columns: 1fr;
   }
   .toast {
     bottom: 12px;

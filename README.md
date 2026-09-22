@@ -50,7 +50,7 @@ The app supports updates across tabs with a Realtime workspace-version subscript
 - Employee overview, filtered tasks, subtasks, actual hours, and completion.
 - Category estimate learning with global fallback and transparent capacity breakdown.
 - Manager overview and employee detail showing confirmed work information.
-- Persistent requests with editable messages, counter-proposals, acceptance, decline, cancellation, and revision history.
+- Persistent requests with editable messages, counter-proposals, acceptance, decline, cancellation, and revision history. Either side can pick from suggested adjustments or use **Manual negotiation**: choose any active task and propose a new deadline, a scope reduction, or a different assignee, with a message — validated against the same server rules.
 - Deadline, scope, and reassignment previews; server-validated transactional approval.
 - Stale version detection, duplicate approval protection, and cross-tab refresh.
 - Keyboard-friendly native dialogs, visible focus, responsive layouts, loading and error states.

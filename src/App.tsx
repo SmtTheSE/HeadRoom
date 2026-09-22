@@ -60,6 +60,7 @@ import {
   risk,
   status,
   workload,
+  NEXT_END,
   WEEK_END,
 } from "./domain";
 import type { AppState, Negotiation, Proposal, Role, Task } from "./types";
@@ -2969,10 +2970,95 @@ function Composer({
   run: Run;
   onClose: () => void;
 }) {
-  const options = recommendations(state);
+  // Suggested adjustments, plus a manual option where either side picks a
+  // task and proposes the change themselves.
+  const options = recommendations(state).filter((o) => o.type !== "reassign");
+  const manualIndex = options.length;
+  const tasks = state.tasks
+    .filter((t) => t.employee_id === "alex" && active(t))
+    .sort(byUrgency);
+  const people = state.profiles.filter(
+    (p) => p.id !== "alex" && p.id !== "sarah",
+  );
   const [selected, setSelected] = useState(0),
-    [message, setMessage] = useState("");
-  const proposal = options[selected];
+    [message, setMessage] = useState(""),
+    [taskId, setTaskId] = useState(tasks[0]?.id ?? ""),
+    [kind, setKind] = useState<"Deadline" | "Scope" | "Assignee">("Deadline"),
+    [date, setDate] = useState(""),
+    [scope, setScope] = useState("1"),
+    [assignee, setAssignee] = useState(people[0]?.id ?? "");
+  const task = tasks.find((t) => t.id === taskId);
+  const dayAfter = (iso: string) => {
+    const d = new Date(new Date(iso).getTime() + 86400000);
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Bangkok",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(d);
+  };
+  const manual = ((): { proposal: Proposal | null; error: string | null } => {
+    if (!task) return { proposal: null, error: "Choose a task." };
+    const base = { task_id: task.id, task_version: task.version };
+    if (kind === "Deadline") {
+      if (!task.flexible)
+        return { proposal: null, error: "This task’s deadline is fixed." };
+      if (!date) return { proposal: null, error: "Choose a new deadline." };
+      const iso = `${date}T10:00:00+07:00`;
+      if (Date.parse(iso) <= Date.parse(task.deadline))
+        return {
+          proposal: null,
+          error: "The new deadline must be later than the current one.",
+        };
+      if (Date.parse(iso) >= Date.parse(NEXT_END))
+        return { proposal: null, error: "Choose a date within next week." };
+      return {
+        proposal: {
+          ...base,
+          type: "deadline",
+          deadline: iso,
+          label: `Move ${task.title} to ${due(iso, true)}`,
+        },
+        error: null,
+      };
+    }
+    if (kind === "Scope") {
+      const amount = Number(scope);
+      if (task.scope_saving <= 0)
+        return { proposal: null, error: "This task has no reducible scope." };
+      if (
+        !(amount > 0) ||
+        amount > task.scope_saving ||
+        amount >= task.personalized_hours
+      )
+        return {
+          proposal: null,
+          error: `Enter between 0.5 and ${duration(task.scope_saving)}.`,
+        };
+      return {
+        proposal: {
+          ...base,
+          type: "scope",
+          scope_hours: amount,
+          label: `Reduce ${task.title} by ${duration(amount)}`,
+        },
+        error: null,
+      };
+    }
+    const person = people.find((p) => p.id === assignee);
+    if (!person) return { proposal: null, error: "Choose a teammate." };
+    return {
+      proposal: {
+        ...base,
+        type: "reassign",
+        employee_id: person.id,
+        label: `Reassign ${task.title} to ${person.name.split(" ")[0]}`,
+      },
+      error: null,
+    };
+  })();
+  const isManual = selected === manualIndex;
+  const proposal = isManual ? manual.proposal : options[selected];
   useEffect(() => {
     if (proposal)
       setMessage(
@@ -2980,7 +3066,8 @@ function Composer({
           ? `Thank you for flagging this. I propose we ${proposal.label.charAt(0).toLowerCase() + proposal.label.slice(1)} instead so the plan remains realistic.`
           : `Based on my current workload, I would like to ${proposal.label.charAt(0).toLowerCase() + proposal.label.slice(1)}. This would bring my active workload to ${duration(workload(applyPreview(state, proposal), "alex", false, state.subtasks))} / 30h. Please let me know if this adjustment works.`,
       );
-  }, [selected, mode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [proposal?.label, mode]);
   return (
     <Modal
       title={
@@ -2993,9 +3080,9 @@ function Composer({
       onClose={onClose}
     >
       <p className="muted">
-        Select an adjustment to propose. This goes directly to Sarah Lee as a
-        message you write — no AI in between. Tasks change only after both of
-        you agree.
+        Select an adjustment to propose. This goes directly to{" "}
+        {mode === "counter" ? "Alex Morgan" : "Sarah Lee"} as a message you
+        write — no AI in between. Tasks change only after both of you agree.
       </p>
       <div
         className="proposal-options"
@@ -3010,7 +3097,8 @@ function Composer({
                 : 0;
           if (!step) return;
           e.preventDefault();
-          const next = (selected + step + options.length) % options.length;
+          const count = options.length + 1;
+          const next = (selected + step + count) % count;
           setSelected(next);
           (e.currentTarget.children[next] as HTMLElement | undefined)?.focus();
         }}
@@ -3051,7 +3139,107 @@ function Composer({
             {i === 0 && <span className="recommended">Suggested</span>}
           </button>
         ))}
+        <button
+          role="radio"
+          aria-checked={isManual}
+          tabIndex={isManual ? 0 : -1}
+          className={isManual ? "selected" : ""}
+          onClick={() => setSelected(manualIndex)}
+        >
+          <span className="radio-mark">{isManual && <span />}</span>
+          <span className="proposal-title">
+            <strong>Manual negotiation</strong>
+            <span>Choose a task and propose the change yourself</span>
+          </span>
+        </button>
       </div>
+      {isManual && (
+        <div className="manual-form">
+          <label className="field">
+            <span>Task</span>
+            <select value={taskId} onChange={(e) => setTaskId(e.target.value)}>
+              {tasks.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.title} · {duration(t.personalized_hours)} · due{" "}
+                  {dueRelative(t.deadline, state.workspace.demo_date)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="field">
+            <span>Change</span>
+            <Segmented
+              label="What to change"
+              options={["Deadline", "Scope", "Assignee"] as const}
+              value={kind}
+              onChange={setKind}
+            />
+          </div>
+          {kind === "Deadline" && task && (
+            <label className="field">
+              <span>New deadline</span>
+              <input
+                type="date"
+                value={date}
+                min={dayAfter(task.deadline)}
+                max="2026-10-04"
+                disabled={!task.flexible}
+                onChange={(e) => setDate(e.target.value)}
+              />
+              <small>
+                Currently {due(task.deadline, true)}. Must be later, and within
+                next week.
+              </small>
+            </label>
+          )}
+          {kind === "Scope" && task && (
+            <label className="field">
+              <span>Reduce by (hours)</span>
+              <input
+                type="number"
+                step="0.5"
+                min="0.5"
+                max={task.scope_saving}
+                value={scope}
+                disabled={task.scope_saving <= 0}
+                onChange={(e) => setScope(e.target.value)}
+              />
+              <small>
+                {task.scope_saving > 0
+                  ? `Up to ${duration(task.scope_saving)} of this task can be removed.`
+                  : "This task has no reducible scope."}
+              </small>
+            </label>
+          )}
+          {kind === "Assignee" && task && (
+            <label className="field">
+              <span>Assign to</span>
+              <select
+                value={assignee}
+                onChange={(e) => setAssignee(e.target.value)}
+              >
+                {people.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} · {p.job_title} ·{" "}
+                    {duration(
+                      workload(state.tasks, p.id, false, state.subtasks),
+                    )}{" "}
+                    / {p.capacity}h
+                  </option>
+                ))}
+              </select>
+              <small>
+                Their estimate uses their own pace; capacity is checked on send.
+              </small>
+            </label>
+          )}
+          {manual.error && (
+            <p className="field-error" role="alert">
+              {manual.error}
+            </p>
+          )}
+        </div>
+      )}
       {proposal ? (
         <>
           <ProposalImpact state={state} proposal={proposal} />
@@ -3082,9 +3270,22 @@ function Composer({
           </div>
         </>
       ) : (
-        <p className="muted">
-          No adjustment options are available for the remaining tasks.
-        </p>
+        !isManual && (
+          <p className="muted">
+            No suggested adjustments are available. Use Manual negotiation to
+            propose one.
+          </p>
+        )
+      )}
+      {isManual && !proposal && (
+        <div className="modal-actions">
+          <button className="btn secondary" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="btn primary" disabled>
+            {mode === "counter" ? "Send counter-proposal" : "Send request"}
+          </button>
+        </div>
       )}
     </Modal>
   );
