@@ -609,6 +609,46 @@ textarea:focus-visible {
   background: var(--brand);
   color: #fff;
 }
+/* hero tone: the surface itself says how the week is going */
+.capacity-hero.tone-danger {
+  background: #4a1a15;
+  box-shadow: inset 0 0 0 2px #b8493c;
+}
+.capacity-hero.tone-danger .capacity-label,
+.capacity-hero.tone-danger .capacity-number span,
+.capacity-hero.tone-danger .capacity-detail-head,
+.capacity-hero.tone-danger .capacity-note {
+  color: #f0cbc5;
+}
+.capacity-hero.tone-danger .capacity-note strong {
+  color: #ffd9d3;
+}
+.capacity-hero.tone-danger .progress.on-dark {
+  background: rgb(255 255 255 / 0.16);
+}
+.capacity-hero.tone-danger .progress.on-dark > span.over {
+  background: #ff8577;
+}
+.capacity-hero.tone-danger .badge.danger {
+  background: #ff8577;
+  color: #3a0f0b;
+}
+.capacity-hero.tone-warning .progress.on-dark > span.near {
+  background: #ffcf4d;
+}
+.capacity-hero.tone-warning .badge.warning {
+  background: #ffcf4d;
+  color: #3d2c00;
+}
+.capacity-hero.tone-good .badge.good,
+.capacity-hero.tone-blue .badge.blue {
+  background: var(--brand-lime);
+  color: #1f3a12;
+}
+.capacity-hero.tone-good .capacity-note strong,
+.capacity-hero.tone-blue .capacity-note strong {
+  color: var(--brand-lime);
+}
 .capacity-label {
   display: flex;
   align-items: center;
@@ -990,6 +1030,9 @@ tr.prio-low td {
   background: var(--green-bar);
   transition: width 0.4s ease;
 }
+.progress > span.near {
+  background: #d9a400;
+}
 .progress > span.over {
   background: var(--red-bar);
 }
@@ -1349,6 +1392,19 @@ td:last-child {
 }
 .team-row:last-child {
   border-bottom: 0;
+}
+.team-row.tone-danger {
+  margin: 0 -14px;
+  padding-inline: 14px;
+  border-left: 4px solid var(--red-bar);
+  border-radius: 6px;
+  background: var(--red-bg);
+}
+.team-row.tone-danger .team-hours {
+  color: var(--red-text);
+}
+.team-row.tone-warning .team-hours {
+  color: var(--amber-text);
 }
 .team-who {
   flex: 1;

@@ -449,7 +449,9 @@ function Progress({
     >
       <span
         style={{ width: `${Math.min(100, (load / capacity) * 100)}%` }}
-        className={load > capacity ? "over" : ""}
+        className={
+          load > capacity ? "over" : load / capacity >= 0.9 ? "near" : ""
+        }
       />
     </div>
   );
@@ -1519,7 +1521,10 @@ function CapacityCard({
     over = load > p.capacity,
     onCapacityPage = useLocation().pathname.endsWith("/capacity");
   return (
-    <section className="capacity-hero" aria-label="This week’s workload">
+    <section
+      className={`capacity-hero tone-${status(load, p.capacity).tone}`}
+      aria-label="This week’s workload"
+    >
       <div className="capacity-figure">
         <span className="capacity-label">This week</span>
         <div className="capacity-number">
@@ -2691,7 +2696,7 @@ function ManagerDashboard({
               ).length;
             return (
               <Link
-                className="team-row"
+                className={`team-row tone-${status(load, p.capacity).tone}`}
                 to={`/manager/employees/${p.id}`}
                 key={p.id}
               >
