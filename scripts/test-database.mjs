@@ -28,6 +28,17 @@ async function act(op, payload, version = s.workspace.version) {
   s = r.rows[0].state;
   return s;
 }
+// Remaining effort per task: progress from completed step minutes or logged
+// hours, whichever is further along (mirrors hr_remaining in SQL).
+const remaining = (state, t) => {
+  const steps = state.subtasks.filter((x) => x.task_id === t.id),
+    total = steps.reduce((n, x) => n + x.minutes, 0),
+    done = steps.filter((x) => x.completed).reduce((n, x) => n + x.minutes, 0),
+    hours = Number(t.personalized_hours),
+    bySteps = total ? hours * (1 - done / total) : hours,
+    byHours = hours - Number(t.actual_hours);
+  return Math.max(0, Math.min(bySteps, byHours));
+};
 const load = (state = s, id = "alex") =>
   state.tasks
     .filter(
@@ -36,10 +47,11 @@ const load = (state = s, id = "alex") =>
         ["todo", "in_progress"].includes(t.status) &&
         new Date(t.deadline) < new Date("2026-09-28T00:00:00+07:00"),
     )
-    .reduce((sum, t) => sum + Number(t.personalized_hours), 0);
-assert.equal(load(), 28);
+    .reduce((sum, t) => sum + remaining(state, t), 0)
+    .toFixed(2) * 1;
+assert.equal(load(), 27);
 await act("activate", {});
-assert.equal(load(), 35);
+assert.equal(load(), 34);
 const proposal = {
   type: "deadline",
   task_id: "analytics",
@@ -48,10 +60,10 @@ const proposal = {
   label: "Move Analytics Report to next Monday",
 };
 await act("request", { proposal, message: "Please move this deadline." });
-assert.equal(load(), 35);
+assert.equal(load(), 34);
 let id = s.negotiations[0].id;
 await act("approve", { role: "manager", id });
-assert.equal(load(), 29);
+assert.equal(load(), 28);
 assert.equal(s.negotiations[0].status, "approved");
 await assert.rejects(
   act("approve", { role: "manager", id }),
@@ -59,7 +71,7 @@ await assert.rejects(
 );
 await assert.rejects(act("reset", {}, 1), /workspace has changed/);
 console.log(
-  "PASS: 28 → 35 → pending → approved → 29; duplicate and stale actions rejected",
+  "PASS: 27 → 34 → pending → approved → 28; duplicate and stale actions rejected",
 );
 await act("reset", {});
 await act("activate", {});
@@ -76,9 +88,9 @@ await act("counter", {
   },
   message: "Try this instead.",
 });
-assert.equal(load(), 35);
+assert.equal(load(), 34);
 await act("accept", { id });
-assert.equal(load(), 28);
+assert.equal(load(), 27);
 console.log(
   "PASS: counter-proposal remains unapplied until employee acceptance",
 );
@@ -87,7 +99,7 @@ await act("activate", {});
 await act("request", { proposal, message: "Request" });
 id = s.negotiations[0].id;
 await act("decline", { role: "manager", id });
-assert.equal(load(), 35);
+assert.equal(load(), 34);
 await act("request", { proposal, message: "Try again" });
 id = s.negotiations[0].id;
 await act("hours", { id: "analytics", actual_hours: 2 });
@@ -95,22 +107,22 @@ await assert.rejects(
   act("approve", { role: "manager", id }),
   /task has changed/,
 );
-assert.equal(load(), 35);
+assert.equal(load(), 32); // 2 logged hours reduce the remaining effort on the analytics task
 console.log(
   "PASS: decline leaves tasks unchanged; stale task revision rolls back approval",
 );
 await act("reset", {});
 await act("complete", { id: "research", actual_hours: 8 });
 assert.equal(s.history.filter((h) => h.task_id === "research").length, 1);
-assert.equal(load(), 21);
+assert.equal(load(), 20);
 await assert.rejects(
   act("complete", { id: "research", actual_hours: 8 }),
   /cannot be changed/,
 );
 await act("activate", {});
 assert.equal(
-  s.tasks.find((t) => t.id === "new-research").personalized_hours,
-  7.25,
+  Number(s.tasks.find((t) => t.id === "new-research").personalized_hours).toFixed(2) * 1,
+  7, // median of the research ratios (7/6 ×3, 8/6) is 7/6; a single overrun no longer drags the estimate
 );
 console.log(
   "PASS: completion creates one history record; new assignments use updated learning",
@@ -128,7 +140,7 @@ await act("request", {
   message: "Share work",
 });
 await act("approve", { role: "manager", id: s.negotiations[0].id });
-assert.equal(load(), 30);
+assert.equal(load(), 29);
 assert.equal(load(s, "maya"), 22);
 console.log(
   "PASS: reassignment uses recipient multiplier and updates both employees",
@@ -169,6 +181,10 @@ await breakdown("analytics", [
   { title: "Write the report", minutes: 60 },
 ]);
 assert.equal(stepsFor("analytics").length, 3);
+assert.equal(
+  Number(s.tasks.find((t) => t.id === "analytics").personalized_hours),
+  4.5, // steps are now the estimate: 270 minutes
+);
 assert.deepEqual(
   stepsFor("analytics").map((x) => x.position),
   [1, 2, 3],
@@ -198,7 +214,7 @@ await db.query("select set_config('request.jwt.claim.sub',$1,false)", [other]);
 await db.exec("set role authenticated");
 s = await get();
 assert.notEqual(s.workspace.id, firstWorkspace);
-assert.equal(load(), 28);
+assert.equal(load(), 27);
 assert.equal(
   (
     await db.query("select * from public.hr_tasks where workspace_id=$1", [

@@ -17,7 +17,7 @@ Open `http://127.0.0.1:5173`. Unsigned visitors can explore a read-only sample. 
 
 ## Supabase setup
 
-1. Run each file in `supabase/migrations/` (in order) in the Supabase SQL Editor. It creates only `hr_*` tables and `hr_*` / `headroom_*` functions, with owner-isolated row-level security. Existing unrelated project data is untouched.
+1. Run each file in `supabase/migrations/` (in order) in the Supabase SQL Editor. Existing demo workspaces pick up new seed data on **Reset demo**. It creates only `hr_*` tables and `hr_*` / `headroom_*` functions, with owner-isolated row-level security. Existing unrelated project data is untouched.
 2. Enable the Google provider under Authentication → Sign In / Providers, with your Google OAuth client credentials.
 3. In Google Cloud, the authorized redirect URI is `https://ptdgrejkeaamfqkbxepf.supabase.co/auth/v1/callback` for this project.
 4. In Supabase Authentication → URL Configuration, allow:
@@ -33,13 +33,13 @@ An optional ignored `.env.setup` can hold `DATABASE_URL` for `npm run db:migrate
 
 The prototype intentionally uses the fixed week of September 21, 2026, with Wednesday September 23 as its planning date, in Asia/Bangkok time.
 
-1. Sign in with Google. Alex starts at **28 / 30h**.
+1. Sign in with Google. Alex starts at **27 / 30h** (9h presentation with 40 of 360 step-minutes done counts as 8h remaining).
 2. Review My Tasks and My Capacity to see subtasks and historical learning.
-3. A **Potential New Task** notification from Microsoft Teams sits at the top of the overview. Expand it to read the message, then click ✓ to confirm it is a task. Workload becomes **35 / 30h**. (✕ removes it as not a task.)
+3. A **Potential New Task** notification from Microsoft Teams sits at the top of the overview. Expand it to read the message, then click ✓ to confirm it is a task. Workload becomes **34 / 30h**. (✕ removes it as not a task.)
 4. Choose **Resolve workload → Move Analytics Report to next Monday**.
-5. Edit the message if desired and send it to Sarah. Workload stays at 35h while pending.
+5. Edit the message if desired and send it to Sarah. Workload stays at 34h while pending.
 6. Switch to **Manager** and open Alex's request.
-7. Approve; both views now show **29 / 30h**. Next week includes the shifted 6h.
+7. Approve; both views now show **28 / 30h**. Next week includes the shifted 6h.
 8. Use **Reset demo** to repeat with counter-proposal, decline, scope reduction, or reassignment.
 
 The app supports updates across tabs with a Realtime workspace-version subscription, refetch on focus/role switch, and a 20-second fallback refresh. The fixed scenario resets only the signed-in user's synthetic data.
@@ -105,9 +105,9 @@ What is implemented:
 
 ## Calculation rules
 
-Task estimates use the average actual/estimated ratio of up to 10 recent category records when at least 3 exist. Otherwise the employee's latest 10 valid records are used, falling back to 1.0. Estimates are fixed when a task is activated; learning changes future estimates, not existing commitments.
+Task estimates use a personal calibration multiplier: the **median** actual/estimated ratio of up to 10 recent records in the task's category when at least 3 exist, otherwise the employee's latest 10 valid records, otherwise 1.0. The multiplier is clamped to 0.5–3.0 and, with fewer than 3 samples, blended toward 1.0 (so one early overrun cannot dominate). Estimates are fixed when a task is activated; learning changes future estimates, not existing commitments. When AI breakdown creates steps, the steps become the estimate: personalized hours equal the step minutes.
 
-Weekly workload sums full personalized estimates of active tasks due that week plus overdue carryover. Logging hours or completing one subtask does not subtract hours. Completing the whole task removes its estimate. This is due-date-bucket planning, not an hour-by-hour schedule or a remaining-effort forecast.
+Weekly workload sums the **remaining effort** of active tasks due that week plus overdue carryover. Progress comes from completed step minutes or logged hours, whichever is further along; completing the whole task removes it. This is due-date-bucket planning of remaining work, not an hour-by-hour schedule.
 
 Capacity is configured, not clinically inferred. Available <70%; On track 70–<90%; Near capacity 90–100%; Over capacity >100%. Scope reductions can offer partial relief without resolving the conflict. Reassignment uses the recipient's own estimate multiplier and checks capacity.
 

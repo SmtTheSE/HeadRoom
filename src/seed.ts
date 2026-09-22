@@ -176,7 +176,7 @@ export const previewState: AppState = {
     task_id: "presentation",
     title,
     completed: i < 2,
-    minutes: [45, 30, 120, 90, 45, 30][i],
+    minutes: [20, 20, 130, 100, 50, 40][i],
     position: i,
   })),
   history: [

@@ -1,4 +1,11 @@
-import type { AppState, History, Profile, Proposal, Task } from "./types";
+import type {
+  AppState,
+  History,
+  Profile,
+  Proposal,
+  Subtask,
+  Task,
+} from "./types";
 export const DEMO_DATE = "2026-09-23";
 export const WEEK_START = "2026-09-21T00:00:00+07:00";
 export const WEEK_END = "2026-09-28T00:00:00+07:00";
@@ -7,7 +14,23 @@ export const active = (t: Task) =>
   t.status === "todo" || t.status === "in_progress";
 export const hours = (n: number) =>
   new Intl.NumberFormat("en", { maximumFractionDigits: 1 }).format(n);
-export function workload(tasks: Task[], employee = "alex", next = false) {
+/** Hours still to do on a task: progress comes from completed step minutes
+ *  or logged hours, whichever is further along. Mirrors hr_remaining() in SQL. */
+export function remaining(task: Task, subtasks: Subtask[] = []) {
+  const steps = subtasks.filter((s) => s.task_id === task.id),
+    total = steps.reduce((n, s) => n + s.minutes, 0),
+    done = steps.filter((s) => s.completed).reduce((n, s) => n + s.minutes, 0),
+    hours = Number(task.personalized_hours),
+    bySteps = total > 0 ? hours * (1 - done / total) : hours,
+    byHours = hours - Number(task.actual_hours);
+  return Math.max(0, Math.min(bySteps, byHours));
+}
+export function workload(
+  tasks: Task[],
+  employee = "alex",
+  next = false,
+  subtasks: Subtask[] = [],
+) {
   return tasks
     .filter(
       (t) =>
@@ -16,7 +39,7 @@ export function workload(tasks: Task[], employee = "alex", next = false) {
         Date.parse(t.deadline) < Date.parse(next ? NEXT_END : WEEK_END) &&
         (!next || Date.parse(t.deadline) >= Date.parse(WEEK_END)),
     )
-    .reduce((n, t) => n + Number(t.personalized_hours), 0);
+    .reduce((n, t) => n + remaining(t, subtasks), 0);
 }
 export function status(load: number, capacity: number) {
   const ratio = load / capacity;
@@ -43,14 +66,22 @@ export function multiplier(
     .sort((a, b) => b.completed_at.localeCompare(a.completed_at));
   const specific = valid.filter((h) => h.category === category);
   const selected = (specific.length >= 3 ? specific : valid).slice(0, 10);
-  return {
-    value: selected.length
-      ? selected.reduce((v, h) => v + h.actual_hours / h.estimated_hours, 0) /
-        selected.length
-      : 1,
-    count: selected.length,
-    categorySpecific: specific.length >= 3,
-  };
+  // Median (outlier-resistant), clamped to 0.5–3, blended toward 1.0 when
+  // fewer than 3 samples exist. Mirrors hr_multiplier() in SQL.
+  const ratios = selected
+    .map((h) => h.actual_hours / h.estimated_hours)
+    .sort((a, b) => a - b);
+  const n = ratios.length;
+  const median = n
+    ? n % 2
+      ? ratios[(n - 1) / 2]
+      : (ratios[n / 2 - 1] + ratios[n / 2]) / 2
+    : 1;
+  const weight = Math.min(n, 3);
+  const value = n
+    ? Math.min(3, Math.max(0.5, (weight * median + (3 - weight)) / 3))
+    : 1;
+  return { value, count: n, categorySpecific: specific.length >= 3 };
 }
 export function due(iso: string, short = false) {
   return new Intl.DateTimeFormat("en", {

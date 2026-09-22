@@ -1064,7 +1064,7 @@ export default function App() {
           onClose={() => setResetOpen(false)}
         >
           This restores the sample tasks, time entries, and requests to the
-          starting workload of 28 / 30h. Only your demo workspace is affected.
+          starting workload of 27 / 30h. Only your demo workspace is affected.
         </ConfirmDialog>
       )}
       {compose && (
@@ -1089,7 +1089,7 @@ function SignInPage({
   busy: boolean;
   onGoogle: () => void;
 }) {
-  const load = workload(state.tasks),
+  const load = workload(state.tasks, "alex", false, state.subtasks),
     p = person(state, "alex");
   const steps = state.subtasks.filter((s) => !s.completed).slice(0, 3);
   return (
@@ -1486,7 +1486,7 @@ function CapacityCard({
   employee?: string;
 }) {
   const p = person(state, employee),
-    load = workload(state.tasks, employee),
+    load = workload(state.tasks, employee, false, state.subtasks),
     over = load > p.capacity,
     onCapacityPage = useLocation().pathname.endsWith("/capacity");
   return (
@@ -1542,7 +1542,7 @@ function Dashboard({
   const [welcomed, setWelcomed] = useState(
     () => localStorage.getItem(WELCOMED_KEY) === "1",
   );
-  const load = workload(state.tasks),
+  const load = workload(state.tasks, "alex", false, state.subtasks),
     open = state.negotiations.find((n) =>
       ["pending", "counter_proposed"].includes(n.status),
     );
@@ -2438,7 +2438,7 @@ function Breakdown({
         Date.parse(next ? "2026-10-05T00:00:00+07:00" : WEEK_END) &&
       (!next || Date.parse(t.deadline) >= Date.parse(WEEK_END)),
   );
-  const total = workload(state.tasks, employee, next);
+  const total = workload(state.tasks, employee, next, state.subtasks);
   return (
     <div className="breakdown">
       {tasks.length ? (
@@ -2478,7 +2478,7 @@ function CapacityPage({
 }) {
   const [next, setNext] = useState(false);
   const canResolve =
-    workload(state.tasks) > 30 &&
+    workload(state.tasks, "alex", false, state.subtasks) > 30 &&
     !state.negotiations.some((n) =>
       ["pending", "counter_proposed"].includes(n.status),
     );
@@ -2509,8 +2509,8 @@ function CapacityPage({
         <Breakdown state={state} next={next} />
         <p className="caption">
           Includes active tasks due {next ? "next" : "this"} week and overdue
-          carryover. Full estimates count until a task is completed; logged time
-          does not reduce the planning total.
+          carryover, counting the remaining effort on each: completed steps and
+          logged hours reduce it.
         </p>
       </section>
       <section className="section optional">
@@ -2575,9 +2575,9 @@ function CapacityPage({
           </table>
         </div>
         <p className="caption">
-          Adjustment factors average actual-to-estimated time across up to 10
-          recent tasks. Categories with fewer than 3 samples use the overall
-          factor. Changes apply to future estimates.
+          Each factor is the median of actual-to-estimated time across up to 10
+          recent tasks, kept between 0.5 and 3.0. Categories with fewer than 3
+          samples use the overall factor. Changes apply to future estimates.
         </p>
       </section>
     </>
@@ -2595,11 +2595,13 @@ function ManagerDashboard({
     .filter((p) => p.id !== "sarah")
     .sort(
       (a, b) =>
-        workload(state.tasks, b.id) / b.capacity -
-        workload(state.tasks, a.id) / a.capacity,
+        workload(state.tasks, b.id, false, state.subtasks) / b.capacity -
+        workload(state.tasks, a.id, false, state.subtasks) / a.capacity,
     );
   const states = employees.map(
-    (p) => status(workload(state.tasks, p.id), p.capacity).label,
+    (p) =>
+      status(workload(state.tasks, p.id, false, state.subtasks), p.capacity)
+        .label,
   );
   const openRequests = state.negotiations.filter((n) =>
     ["pending", "counter_proposed"].includes(n.status),
@@ -2636,7 +2638,7 @@ function ManagerDashboard({
         </div>
         <div className="team-list">
           {employees.map((p) => {
-            const load = workload(state.tasks, p.id),
+            const load = workload(state.tasks, p.id, false, state.subtasks),
               risks = state.tasks.filter(
                 (t) => t.employee_id === p.id && risk(t, state),
               ).length,
@@ -2715,7 +2717,7 @@ function EmployeeDetail({ state }: { state: AppState }) {
   const { id } = useParams(),
     p = state.profiles.find((p) => p.id === id && p.id !== "sarah");
   if (!p) return <NotFound />;
-  const load = workload(state.tasks, p.id);
+  const load = workload(state.tasks, p.id, false, state.subtasks);
   const requests = state.negotiations.filter((n) => n.employee_id === p.id);
   return (
     <>
@@ -2808,7 +2810,7 @@ function Requests({
         subtitle="Review and agree workload adjustments with your superior."
       >
         {role === "employee" &&
-          workload(state.tasks) > 30 &&
+          workload(state.tasks, "alex", false, state.subtasks) > 30 &&
           !state.negotiations.some((n) =>
             ["pending", "counter_proposed"].includes(n.status),
           ) && (
@@ -2853,8 +2855,8 @@ function ProposalImpact({
   const task = state.tasks.find((t) => t.id === proposal.task_id);
   if (!task) return null;
   const after = applyPreview(state, proposal),
-    before = workload(state.tasks),
-    load = workload(after),
+    before = workload(state.tasks, "alex", false, state.subtasks),
+    load = workload(after, "alex", false, state.subtasks),
     other =
       proposal.type === "reassign" ? person(state, proposal.employee_id) : null;
   return (
@@ -2884,7 +2886,7 @@ function ProposalImpact({
       {proposal.type === "deadline" && (
         <p>
           {due(task.deadline, true)} → {due(proposal.deadline!, true)}. Next
-          week: {hours(workload(after, "alex", true))} / 30h.
+          week: {hours(workload(after, "alex", true, state.subtasks))} / 30h.
         </p>
       )}
       {proposal.type === "scope" && (
@@ -2897,8 +2899,9 @@ function ProposalImpact({
       )}
       {other && (
         <p>
-          {other.name}: {hours(workload(after, other.id))} / {other.capacity}h
-          after reassignment.
+          {other.name}:{" "}
+          {hours(workload(after, other.id, false, state.subtasks))} /{" "}
+          {other.capacity}h after reassignment.
         </p>
       )}
     </div>
@@ -2928,7 +2931,7 @@ function Composer({
       setMessage(
         mode === "counter"
           ? `Thank you for flagging this. I propose we ${proposal.label.charAt(0).toLowerCase() + proposal.label.slice(1)} instead so the plan remains realistic.`
-          : `Based on my current workload, I would like to ${proposal.label.charAt(0).toLowerCase() + proposal.label.slice(1)}. This would bring my active workload to ${hours(workload(applyPreview(state, proposal)))} / 30h. Please let me know if this adjustment works.`,
+          : `Based on my current workload, I would like to ${proposal.label.charAt(0).toLowerCase() + proposal.label.slice(1)}. This would bring my active workload to ${hours(workload(applyPreview(state, proposal), "alex", false, state.subtasks))} / 30h. Please let me know if this adjustment works.`,
       );
   }, [selected, mode]);
   return (
@@ -2978,10 +2981,21 @@ function Composer({
               <ProposalTitle state={state} proposal={o} />
               <small>
                 {hours(
-                  workload(state.tasks) - workload(applyPreview(state, o)),
+                  workload(state.tasks, "alex", false, state.subtasks) -
+                    workload(
+                      applyPreview(state, o),
+                      "alex",
+                      false,
+                      state.subtasks,
+                    ),
                 )}
                 h less this week
-                {workload(applyPreview(state, o)) > 30
+                {workload(
+                  applyPreview(state, o),
+                  "alex",
+                  false,
+                  state.subtasks,
+                ) > 30
                   ? " · partial relief"
                   : " · within capacity"}
               </small>
@@ -3070,7 +3084,9 @@ function RequestDetail({
                 : `This request was ${n.status}. No task changes were applied.`}
             </p>
             <strong>
-              Current workload: {hours(workload(state.tasks))} / 30h
+              Current workload:{" "}
+              {hours(workload(state.tasks, "alex", false, state.subtasks))} /
+              30h
             </strong>
           </div>
         )}
