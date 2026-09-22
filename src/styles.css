@@ -774,27 +774,6 @@ tr.prio-low td {
   border-top: 1px solid var(--line);
 }
 
-/* first-run wayfinding */
-.wayfinding {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin: -8px 0 20px;
-  padding: 14px 8px 14px 18px;
-  border-radius: var(--radius);
-  background: var(--green-bg);
-  color: var(--green-text);
-}
-.wayfinding p {
-  flex: 1;
-  font-size: 0.9375rem;
-}
-.wayfinding strong {
-  color: var(--ink);
-}
-.wayfinding .icon-btn {
-  color: var(--green-text);
-}
 .view-as {
   display: flex;
   align-items: center;
@@ -1048,6 +1027,16 @@ tr.prio-low td {
   padding: 14px 0;
   border-bottom: 1px solid var(--line);
 }
+.focus-item.current {
+  margin: 0 -14px;
+  padding: 14px;
+  border: 1px solid #cbdcbd;
+  border-radius: var(--radius-sm);
+  background: var(--green-bg);
+}
+.focus-item.current + .focus-item {
+  border-top: 0;
+}
 .focus-item:last-child {
   border-bottom: 0;
 }
@@ -1056,10 +1045,24 @@ tr.prio-low td {
   min-width: 0;
 }
 .focus-item strong {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--ink);
+}
+.current-step-label {
+  display: inline-flex !important;
+  margin-top: 0 !important;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--green-bar);
+  color: #fff !important;
+  font-size: 0.6875rem !important;
+  font-weight: 600;
+  line-height: 1.45;
+  letter-spacing: 0.02em;
 }
 .focus-item > a:not(.btn):hover strong {
   text-decoration: underline;
@@ -2740,13 +2743,6 @@ td:last-child {
   .top-actions .ghost span,
   .view-as > span {
     display: none;
-  }
-  .wayfinding {
-    flex-wrap: wrap;
-    padding: 14px 16px;
-  }
-  .wayfinding p {
-    flex-basis: 100%;
   }
   .topbar-display {
     display: inline-flex;

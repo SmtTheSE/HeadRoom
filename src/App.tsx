@@ -661,7 +661,6 @@ export default function App() {
       cache.setQueryData(["workspace", session.user.id], updated);
       if (op === "reset") {
         localStorage.removeItem(DISMISSED_KEY);
-        localStorage.removeItem(WELCOMED_KEY);
       }
       setNotice(
         message ??
@@ -1569,9 +1568,6 @@ function Dashboard({
   userName: string;
 }) {
   const now = useNow();
-  const [welcomed, setWelcomed] = useState(
-    () => localStorage.getItem(WELCOMED_KEY) === "1",
-  );
   const load = workload(state.tasks, "alex", false, state.subtasks),
     open = state.negotiations.find((n) =>
       ["pending", "counter_proposed"].includes(n.status),
@@ -1595,27 +1591,6 @@ function Dashboard({
         eyebrow={`${longDate.format(now)} · ${clock.format(now)}`}
         title={`${greeting(now)}, ${userName}.`}
       />
-      {focus[0] && !welcomed && (
-        <div className="wayfinding" role="region" aria-label="Where to start">
-          <p>
-            Task: <strong>{focus[0].title}</strong> (
-            {minutesLabel(focus[0].minutes)}).
-          </p>
-          <Link className="btn primary" to={`/employee/focus/${focus[0].id}`}>
-            Start
-          </Link>
-          <button
-            className="icon-btn"
-            aria-label="Dismiss this hint"
-            onClick={() => {
-              localStorage.setItem(WELCOMED_KEY, "1");
-              setWelcomed(true);
-            }}
-          >
-            <X size={16} />
-          </button>
-        </div>
-      )}
       <TaskInbox state={state} busy={busy} run={run} notify={notify} />
       {resolved && (
         <div className="banner success">
@@ -1662,7 +1637,10 @@ function Dashboard({
         <div className="focus-list">
           {focus.length ? (
             focus.map((s, i) => (
-              <div className="focus-item" key={s.id}>
+              <div
+                className={`focus-item ${i === 0 ? "current" : ""}`}
+                key={s.id}
+              >
                 <button
                   aria-label={`Complete ${s.title}`}
                   className={`check-circle ${i === 0 ? "first" : ""}`}
@@ -1679,7 +1657,10 @@ function Dashboard({
                   <Check size={16} />
                 </button>
                 <Link to={`/employee/tasks/${s.task_id}`}>
-                  <strong>{s.title}</strong>
+                  <strong>
+                    {s.title}
+                    {i === 0 && <span className="current-step-label">Current</span>}
+                  </strong>
                   <span>
                     Main task:{" "}
                     {state.tasks.find((t) => t.id === s.task_id)?.title}
@@ -1688,7 +1669,7 @@ function Dashboard({
                 <span className="time-pill">{minutesLabel(s.minutes)}</span>
                 {i === 0 ? (
                   <Link
-                    className={`btn ${welcomed ? "primary" : "secondary"} start-btn`}
+                    className="btn primary start-btn"
                     to={`/employee/focus/${s.id}`}
                   >
                     Start
@@ -1770,7 +1751,6 @@ const TEAMS_MESSAGES: Record<
   },
 };
 const DISMISSED_KEY = "headroom.dismissed";
-const WELCOMED_KEY = "headroom.welcomed";
 function readDismissed(): string[] {
   try {
     return JSON.parse(localStorage.getItem(DISMISSED_KEY) ?? "[]");
