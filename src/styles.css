@@ -1043,6 +1043,12 @@ tr.prio-low td {
 }
 
 /* ---------- dashboard ---------- */
+.dashboard-capacity {
+  margin-top: 32px;
+}
+.dashboard-capacity .capacity-hero {
+  margin-top: 0;
+}
 .task-focus-list {
   margin-top: 16px;
 }
