@@ -1639,7 +1639,7 @@ function Dashboard({
         </div>
         <div className="task-focus-list">
           {focusTasks.length ? (
-            focusTasks.map((task) => {
+            focusTasks.map((task, taskIndex) => {
               const steps = state.subtasks
                 .filter((step) => step.task_id === task.id)
                 .sort((a, b) => a.position - b.position);
@@ -1665,7 +1665,7 @@ function Dashboard({
                       <span className="time-pill">
                         {minutesLabel(remainingMinutes)}
                       </span>
-                      {nextStep && (
+                      {nextStep && taskIndex === 0 && (
                         <Link
                           className="btn primary start-btn"
                           to={`/employee/focus/${nextStep.id}`}
