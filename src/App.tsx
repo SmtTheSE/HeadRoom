@@ -1862,8 +1862,7 @@ function TaskInbox({
               </button>
               {expanded && (
                 <p className="inbox-detail" id={`inbox-${t.id}`}>
-                  adds <b>{t.title}</b> ·{" "}
-                  {duration(t.personalized_hours)} · due{" "}
+                  adds <b>{t.title}</b> · {duration(t.personalized_hours)} · due{" "}
                   {due(t.deadline, true)}
                 </p>
               )}
@@ -3211,11 +3210,7 @@ function Composer({
               >
                 {people.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name} · {p.job_title} ·{" "}
-                    {duration(
-                      workload(state.tasks, p.id, false, state.subtasks),
-                    )}{" "}
-                    / {p.capacity}h
+                    {p.name} · {p.job_title}
                   </option>
                 ))}
               </select>
