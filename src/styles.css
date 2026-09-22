@@ -600,9 +600,10 @@ textarea:focus-visible {
 /* capacity hero: the one strong surface on the page */
 .capacity-hero {
   position: relative;
-  display: flex;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
   align-items: center;
-  gap: 32px;
+  gap: 40px;
   margin-top: 4px;
   padding: 24px 28px;
   border-radius: var(--radius);
@@ -691,26 +692,20 @@ textarea:focus-visible {
   background: #f1a28c;
 }
 .capacity-note {
-  margin-top: 12px;
+  margin: 0;
   font-size: 0.875rem;
   color: #b7cbc9;
 }
 .capacity-note strong {
   color: #fff;
 }
-.capacity-link {
-  flex-shrink: 0;
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #fff;
-  text-decoration: underline;
-  text-decoration-color: rgb(255 255 255 / 0.4);
-  text-underline-offset: 3px;
-}
-.capacity-link:hover {
-  background: rgb(255 255 255 / 0.1);
+.capacity-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 38px;
+  margin-top: 12px;
 }
 .capacity-actions {
   display: flex;
@@ -1579,10 +1574,14 @@ td:last-child {
 @keyframes ai-glow {
   0%,
   100% {
-    box-shadow: 0 0 0 1px rgb(95 139 74 / 0.06), 0 14px 40px rgb(95 139 74 / 0.1);
+    box-shadow:
+      0 0 0 1px rgb(95 139 74 / 0.06),
+      0 14px 40px rgb(95 139 74 / 0.1);
   }
   50% {
-    box-shadow: 0 0 0 1px rgb(95 139 74 / 0.1), 0 18px 56px rgb(95 139 74 / 0.2);
+    box-shadow:
+      0 0 0 1px rgb(95 139 74 / 0.1),
+      0 18px 56px rgb(95 139 74 / 0.2);
   }
 }
 @keyframes ai-sweep {
@@ -1668,7 +1667,13 @@ td:last-child {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: radial-gradient(circle at 32% 28%, #f2fbdc 0%, #a9c887 35%, var(--green-bar) 70%, #2f5d3a 100%);
+  background: radial-gradient(
+    circle at 32% 28%,
+    #f2fbdc 0%,
+    #a9c887 35%,
+    var(--green-bar) 70%,
+    #2f5d3a 100%
+  );
   animation: ai-breathe 2.2s ease-in-out infinite;
 }
 .ai-orb.small {
@@ -1772,7 +1777,13 @@ td:last-child {
   display: block;
   width: 30%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, var(--green-bar), var(--brand-lime), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--green-bar),
+    var(--brand-lime),
+    transparent
+  );
   animation: ai-sweep 1.4s ease-in-out infinite;
 }
 .ai-head {
@@ -1815,7 +1826,6 @@ td:last-child {
   color: var(--muted);
 }
 
-
 /* skeleton rows with a travelling wave */
 .ai-skeleton {
   margin: 18px 0 0;
@@ -1827,7 +1837,12 @@ td:last-child {
   height: 13px;
   margin: 12px 0 14px 28px;
   border-radius: 6px;
-  background: linear-gradient(90deg, var(--line) 25%, var(--oat) 50%, var(--line) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--line) 25%,
+    var(--oat) 50%,
+    var(--line) 75%
+  );
   background-size: 200% 100%;
   animation:
     ai-shimmer 1.4s linear infinite,
@@ -2813,15 +2828,13 @@ td:last-child {
     padding-top: 22px;
   }
   .capacity-hero {
-    flex-direction: column;
+    grid-template-columns: 1fr;
     align-items: stretch;
     gap: 18px;
     padding: 20px;
   }
   .capacity-actions {
-    position: absolute;
-    top: 14px;
-    right: 14px;
+    justify-content: flex-end;
   }
   .stats-row {
     gap: 16px 28px;
@@ -2995,8 +3008,7 @@ html[data-contrast="high"] .preview-card {
 html[data-contrast="high"] .capacity-label,
 html[data-contrast="high"] .capacity-number span,
 html[data-contrast="high"] .capacity-detail-head,
-html[data-contrast="high"] .capacity-note,
-html[data-contrast="high"] .capacity-link {
+html[data-contrast="high"] .capacity-note {
   color: #fff;
 }
 html[data-contrast="high"] .progress {

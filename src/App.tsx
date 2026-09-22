@@ -1536,35 +1536,34 @@ function CapacityCard({
           <Badge load={load} capacity={p.capacity} />
         </div>
         <Progress load={load} capacity={p.capacity} dark />
-        <p className="capacity-note">
-          <strong>
-            {over
-              ? `${duration(load - p.capacity)} over capacity.`
-              : `${duration(p.capacity - load)} available.`}
-          </strong>{" "}
-          {!over && "Reserved time covers meetings, administration, and breaks."}
-        </p>
-      </div>
-      {!onCapacityPage && (
-        <div className="capacity-actions">
-          {over &&
-            (openRequest ? (
-              <Link
-                className="btn capacity-resolve"
-                to={`/employee/negotiations/${openRequest.id}`}
-              >
-                View request <ArrowRight size={16} />
-              </Link>
-            ) : resolve ? (
-              <button className="btn capacity-resolve" onClick={resolve}>
-                Resolve workload <ArrowRight size={16} />
-              </button>
-            ) : null)}
-          <Link className="capacity-link" to="/employee/capacity">
-            Details
-          </Link>
+        <div className="capacity-bottom">
+          <p className="capacity-note">
+            <strong>
+              {over
+                ? `${duration(load - p.capacity)} over capacity.`
+                : `${duration(p.capacity - load)} available.`}
+            </strong>{" "}
+            {!over &&
+              "Reserved time covers meetings, administration, and breaks."}
+          </p>
+          {!onCapacityPage && over && (
+            <div className="capacity-actions">
+              {openRequest ? (
+                <Link
+                  className="btn capacity-resolve"
+                  to={`/employee/negotiations/${openRequest.id}`}
+                >
+                  View request <ArrowRight size={16} />
+                </Link>
+              ) : resolve ? (
+                <button className="btn capacity-resolve" onClick={resolve}>
+                  Resolve workload <ArrowRight size={16} />
+                </button>
+              ) : null}
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </section>
   );
 }
@@ -1652,7 +1651,9 @@ function Dashboard({
                 <Link to={`/employee/tasks/${s.task_id}`}>
                   <strong>
                     {s.title}
-                    {i === 0 && <span className="current-step-label">Current</span>}
+                    {i === 0 && (
+                      <span className="current-step-label">Current</span>
+                    )}
                   </strong>
                   <span>
                     Main task:{" "}
