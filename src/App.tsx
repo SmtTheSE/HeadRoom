@@ -724,11 +724,6 @@ export default function App() {
       cache.setQueryData(["workspace", session.user.id], updated);
       setAi({ taskId: task.id, phase: "done" });
       setTimeout(() => setAi(null), 8000);
-      setNotice(
-        source === "mock"
-          ? `Demo breakdown added ${steps.length} steps to ${task.title}. LLM API is off.`
-          : `Gemini generated ${steps.length} steps for ${task.title}. Model: ${model}.`,
-      );
       return true;
     } catch (error) {
       setNotice(
@@ -1445,7 +1440,7 @@ function FocusPage({
         </div>
         <p className="focus-block">
           {blocks > 1 ? `Block ${block} of ${blocks} · ` : ""}
-          planned {minutesLabel(step.minutes)} · {clockLabel(elapsed)} so far
+          planned {minutesLabel(step.minutes)}
           {timer.pausedAt !== null && " · paused"}
         </p>
         {blockEnd && !over && (
@@ -1602,8 +1597,8 @@ function Dashboard({
       {focus[0] && !welcomed && (
         <div className="wayfinding" role="region" aria-label="Where to start">
           <p>
-            Start with <strong>{focus[0].title}</strong> — your first step today
-            ({minutesLabel(focus[0].minutes)}).
+            Task: <strong>{focus[0].title}</strong> (
+            {minutesLabel(focus[0].minutes)}).
           </p>
           <Link className="btn primary" to={`/employee/focus/${focus[0].id}`}>
             Start
@@ -1770,7 +1765,7 @@ const TEAMS_MESSAGES: Record<
   "new-research": {
     from: "Sarah Lee",
     channel: "Design team",
-    text: "Hi Alex, please prepare a competitor research summary for the client pitch. Cover the three main competitors’ pricing pages and onboarding flows, and include screenshots we can use in the deck. Please have it ready by Thursday morning so it can be reviewed before the call. Thank you.",
+    text: "Hi Thaw, please prepare a competitor research summary for the client pitch. Cover the three main competitors’ pricing pages and onboarding flows, and include screenshots we can use in the deck. Please have it ready by Thursday morning so it can be reviewed before the call. Thank you.",
   },
 };
 const DISMISSED_KEY = "headroom.dismissed";
@@ -1866,13 +1861,9 @@ function TaskInbox({
               </button>
               {expanded && (
                 <p className="inbox-detail" id={`inbox-${t.id}`}>
-                  Confirming adds <b>{t.title}</b> ·{" "}
-                  {duration(t.personalized_hours)} estimate · due{" "}
+                  adds <b>{t.title}</b> ·{" "}
+                  {duration(t.personalized_hours)} · due{" "}
                   {due(t.deadline, true)}
-                  <span className="inbox-scope">
-                    Detected from a message that mentions you. Nothing is added
-                    to your workload until you confirm; removing it deletes it.
-                  </span>
                 </p>
               )}
             </div>
