@@ -342,6 +342,38 @@ function ConfirmDialog({
     </Modal>
   );
 }
+/* ---------- urgency ---------- */
+const PRIORITY_RANK: Record<Task["priority"], number> = {
+  High: 0,
+  Medium: 1,
+  Low: 2,
+};
+/** Sooner deadline first, then higher priority. */
+function byUrgency(a: Task, b: Task) {
+  return (
+    a.deadline.localeCompare(b.deadline) ||
+    PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority]
+  );
+}
+function dueTone(iso: string, demoDate: string) {
+  const label = dueRelative(iso, demoDate);
+  return label.includes("overdue") || label === "Today"
+    ? "danger"
+    : label === "Tomorrow"
+      ? "warning"
+      : "neutral";
+}
+/** Deadline as a chip whose weight matches how soon it is. */
+function DueChip({ iso, demoDate }: { iso: string; demoDate: string }) {
+  const label = dueRelative(iso, demoDate);
+  return (
+    <span className={`due-chip ${dueTone(iso, demoDate)}`}>
+      {label.includes("overdue")
+        ? label
+        : `Due ${label === "Today" || label === "Tomorrow" ? label.toLowerCase() : label}`}
+    </span>
+  );
+}
 function Segmented<T extends string>({
   options,
   value,
@@ -1390,7 +1422,7 @@ function FocusPage({
           <span className="bullet" aria-hidden="true">
             ·
           </span>
-          Due {dueRelative(task.deadline, state.workspace.demo_date)}
+          <DueChip iso={task.deadline} demoDate={state.workspace.demo_date} />
         </p>
         <h1>{step.title}</h1>
         <div
@@ -1546,13 +1578,12 @@ function Dashboard({
   const tasks = state.tasks
     .filter((t) => t.employee_id === "alex" && active(t))
     .sort((a, b) => a.deadline.localeCompare(b.deadline));
-  const focus = state.subtasks
-    .filter(
-      (s) =>
-        !s.completed &&
-        state.tasks.some(
-          (t) => t.id === s.task_id && active(t) && t.employee_id === "alex",
-        ),
+  const urgentTasks = state.tasks
+    .filter((t) => active(t) && t.employee_id === "alex")
+    .sort(byUrgency);
+  const focus = urgentTasks
+    .flatMap((t) =>
+      state.subtasks.filter((s) => s.task_id === t.id && !s.completed),
     )
     .slice(0, 3);
   const resolved =
@@ -1698,7 +1729,7 @@ function Dashboard({
             </thead>
             <tbody>
               {tasks.slice(0, 4).map((t) => (
-                <tr key={t.id}>
+                <tr key={t.id} className={`prio-${t.priority.toLowerCase()}`}>
                   <td>
                     <Link to={`/employee/tasks/${t.id}`}>
                       <span>
@@ -1709,7 +1740,12 @@ function Dashboard({
                       </span>
                     </Link>
                   </td>
-                  <td>{dueRelative(t.deadline, state.workspace.demo_date)}</td>
+                  <td>
+                    <DueChip
+                      iso={t.deadline}
+                      demoDate={state.workspace.demo_date}
+                    />
+                  </td>
                   <td>{duration(t.personalized_hours)}</td>
                 </tr>
               ))}
@@ -1828,6 +1864,10 @@ function TaskInbox({
                   Confirming adds <b>{t.title}</b> ·{" "}
                   {duration(t.personalized_hours)} estimate · due{" "}
                   {due(t.deadline, true)}
+                  <span className="inbox-scope">
+                    Detected from a message that mentions you. Nothing is added
+                    to your workload until you confirm; removing it deletes it.
+                  </span>
                 </p>
               )}
             </div>
@@ -1957,6 +1997,10 @@ function AiWorking() {
         <li style={{ width: "55%" }} />
         <li style={{ width: "68%" }} />
       </ul>
+      <p className="ai-scope">
+        Runs only when you ask. Reads this task’s title, description, category,
+        and estimate — nothing else — and suggests steps you can edit or undo.
+      </p>
     </div>
   );
 }
@@ -2056,17 +2100,17 @@ function TaskRow({
     needsSteps = !subs.length && active(task),
     working = ai?.taskId === task.id && ai.phase === "working";
   return (
-    <div className="task-row">
+    <div className={`task-row prio-${task.priority.toLowerCase()}`}>
       <div className="task-main">
         <Link className="task-link" to={`/employee/tasks/${task.id}`}>
           <strong>{task.title}</strong>
         </Link>
         <span>
-          {task.category}{" "}
+          <DueChip iso={task.deadline} demoDate={state.workspace.demo_date} />
           <span className="bullet" aria-hidden="true">
             ·
           </span>{" "}
-          Due {dueRelative(task.deadline, state.workspace.demo_date)}
+          {task.category}
         </span>
         {risk(task, state) && (
           <small className="risk-text">{risk(task, state)}</small>
@@ -2147,7 +2191,8 @@ function TasksPage({
             : filter === "This Week"
               ? active(t) && Date.parse(t.deadline) < Date.parse(WEEK_END)
               : true,
-    );
+    )
+    .sort(byUrgency);
   return (
     <>
       <PageHeading
@@ -2236,7 +2281,7 @@ function TaskDetail({
         <div>
           <dt>Deadline</dt>
           <dd>
-            {dueRelative(task.deadline, state.workspace.demo_date)}
+            <DueChip iso={task.deadline} demoDate={state.workspace.demo_date} />
             <small> · {due(task.deadline)}</small>
           </dd>
         </div>
@@ -2943,8 +2988,9 @@ function Composer({
       onClose={onClose}
     >
       <p className="muted">
-        Select an adjustment to propose. Tasks change only after both parties
-        agree.
+        Select an adjustment to propose. This goes directly to Sarah Lee as a
+        message you write — no AI in between. Tasks change only after both of
+        you agree.
       </p>
       <div
         className="proposal-options"

@@ -84,6 +84,10 @@ Optionally set `GEMINI_MODEL` to another compatible model. The hosted app calls 
 
 Designed for ADHD: **Start** on any step opens a distraction-free page with only that step — no sidebar, no inbox, no upcoming work. A timer runs in 25-minute blocks, so a 2-hour step reads as "Block 1 of 5 · 12:04 / 25:00"; block ends and overruns are noted calmly, never in red. Pause/Resume and the elapsed time survive a refresh. **Done** records the step and shows a completion screen with the next step ready to start; **Skip to next** moves on without judgement. Elsewhere, ticking a step confirms what was done and names the next step, and due dates read as "Today", "Tomorrow", or the weekday.
 
+## AI and privacy
+
+AI in Headroom is **passive**: it runs only when a person clicks *AI breakdown*, reads that task's title, description, category, and estimate — nothing else — and returns suggested steps the person can edit or undo. One call per breakdown (about 1–2k tokens); no agents, no background processing, no access to calendars, email, or chat history. The Teams notification in the demo is scripted; in production a message would surface only if the person is mentioned in it, and nothing enters the workload until they confirm. Workload requests are messages written by the employee and read by their superior — no AI sits in between.
+
 ## Accessibility
 
 Headroom targets WCAG 2.2 AA and is designed for people with ADHD first: one column per page, one clear next action, small time-boxed steps, plain language, and no decorative motion.

@@ -673,6 +673,67 @@ textarea:focus-visible {
   background: rgb(255 255 255 / 0.1);
 }
 
+/* deadlines: weight matches urgency */
+.due-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.due-chip.danger {
+  background: var(--red-bg);
+  color: var(--red-text);
+}
+.due-chip.warning {
+  background: var(--amber-bg);
+  color: var(--amber-text);
+}
+.due-chip.neutral {
+  background: var(--oat);
+  color: var(--text);
+  font-weight: 500;
+}
+/* priority: high stands out, low recedes */
+.task-row.prio-high .task-link strong,
+tr.prio-high td:first-child a {
+  font-weight: 700;
+}
+.task-row.prio-high .priority {
+  background: var(--red-solid);
+  color: #fff;
+}
+.task-row.prio-low .task-link strong,
+tr.prio-low td:first-child a {
+  font-weight: 400;
+  color: var(--text);
+}
+.task-row.prio-low .task-main > span,
+.task-row.prio-low .task-estimate,
+.task-row.prio-low .task-progress,
+tr.prio-low td {
+  color: var(--muted);
+  opacity: 0.85;
+}
+.task-row.prio-low .priority {
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  color: var(--muted);
+}
+.ai-scope,
+.inbox-scope {
+  display: block;
+  margin-top: 10px;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.ai-scope {
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
 /* first-run wayfinding */
 .wayfinding {
   display: flex;
