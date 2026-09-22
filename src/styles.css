@@ -3368,16 +3368,6 @@ html[data-contrast="high"] :focus-visible {
   outline: 3px solid #000;
   outline-offset: 3px;
 }
-html[data-simple="on"] .optional,
-html[data-simple="on"] .caption,
-html[data-simple="on"] .capacity-note,
-html[data-simple="on"] .privacy-note,
-html[data-simple="on"] .signin-visual {
-  display: none;
-}
-html[data-simple="on"] .page-heading p {
-  display: none;
-}
 .inbox-collapsed {
   display: flex;
   align-items: center;

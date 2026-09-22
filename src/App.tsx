@@ -276,24 +276,6 @@ function DisplayPanel({ onClose }: { onClose: () => void }) {
             }
           />
         </div>
-        <div className="llm-setting">
-          <div>
-            <div className="setting-title" id="pref-simple">
-              Simplified view
-            </div>
-            <div className="setting-subtitle">
-              Hides explanations and collapses the Teams inbox, so the page is
-              your capacity and your tasks.
-            </div>
-          </div>
-          <Switch
-            id="pref-simple"
-            on={display.simple}
-            onChange={(on) =>
-              set({ simple: on }, `Simplified view ${on ? "on" : "off"}`)
-            }
-          />
-        </div>
       </div>
       <p className="sr-only" role="status" aria-live="polite">
         {announce}

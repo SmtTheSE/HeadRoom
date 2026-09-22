@@ -4,13 +4,11 @@ export type Display = {
   motion: "system" | "reduce" | "allow";
   text: "default" | "large" | "larger";
   contrast: boolean;
-  simple: boolean;
 };
 export const DEFAULT_DISPLAY: Display = {
   motion: "system",
   text: "default",
   contrast: false,
-  simple: false,
 };
 const KEY = "headroom.display";
 export function readDisplay(): Display {
@@ -28,7 +26,6 @@ export function applyDisplay(d: Display) {
   set("data-motion", d.motion === "system" ? null : d.motion);
   set("data-text", d.text === "default" ? null : d.text);
   set("data-contrast", d.contrast ? "high" : null);
-  set("data-simple", d.simple ? "on" : null);
   try {
     localStorage.setItem(KEY, JSON.stringify(d));
   } catch {
