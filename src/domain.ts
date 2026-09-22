@@ -14,6 +14,19 @@ export const active = (t: Task) =>
   t.status === "todo" || t.status === "in_progress";
 export const hours = (n: number) =>
   new Intl.NumberFormat("en", { maximumFractionDigits: 1 }).format(n);
+/** Minutes as "2h 10m", "45m", or "6h" — never decimal hours. */
+export function durationMinutes(minutes: number) {
+  const total = Math.max(0, Math.round(minutes)),
+    h = Math.floor(total / 60),
+    m = total % 60;
+  if (h && m) return `${h}h ${m}m`;
+  if (h) return `${h}h`;
+  return `${m}m`;
+}
+/** Hours (possibly fractional) as a duration, rounded to the nearest 5 minutes. */
+export function duration(hoursValue: number) {
+  return durationMinutes(Math.round((hoursValue * 60) / 5) * 5);
+}
 /** Hours still to do on a task: progress comes from completed step minutes
  *  or logged hours, whichever is further along. Mirrors hr_remaining() in SQL. */
 export function remaining(task: Task, subtasks: Subtask[] = []) {

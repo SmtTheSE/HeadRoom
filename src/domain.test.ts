@@ -3,6 +3,8 @@ import { previewState } from "./seed";
 import {
   applyPreview,
   dueRelative,
+  duration,
+  durationMinutes,
   multiplier,
   recommendations,
   remaining,
@@ -135,5 +137,18 @@ describe("dueRelative", () => {
     expect(dueRelative("2026-09-22T10:00:00+07:00", today)).toBe(
       "1 day overdue",
     );
+  });
+});
+
+describe("duration formatting", () => {
+  it("never shows decimal hours", () => {
+    expect(durationMinutes(130)).toBe("2h 10m");
+    expect(durationMinutes(45)).toBe("45m");
+    expect(durationMinutes(120)).toBe("2h");
+    expect(durationMinutes(0)).toBe("0m");
+    expect(duration(2.2)).toBe("2h 10m"); // 132 min → nearest 5
+    expect(duration(7.125)).toBe("7h 10m");
+    expect(duration(27)).toBe("27h");
+    expect(duration(0.5)).toBe("30m");
   });
 });

@@ -52,7 +52,8 @@ import {
   applyPreview,
   due,
   dueRelative,
-  hours,
+  duration,
+  durationMinutes,
   multiplier,
   person,
   recommendations,
@@ -93,8 +94,8 @@ function describeProposal(state: AppState, p: Proposal) {
     return {
       title,
       change: "Scope",
-      from: `${hours(task.personalized_hours)}h`,
-      to: `${hours(Math.max(0, task.personalized_hours - p.scope_hours!))}h`,
+      from: `${duration(task.personalized_hours)}`,
+      to: `${duration(Math.max(0, task.personalized_hours - p.scope_hours!))}`,
     };
   return {
     title,
@@ -1134,12 +1135,12 @@ function SignInPage({
           <div className="preview-card">
             <span className="capacity-label">This week</span>
             <div className="capacity-number">
-              {hours(load)}
+              {duration(load)}
               <span> / {p.capacity}h</span>
             </div>
             <Progress load={load} capacity={p.capacity} dark />
             <p className="capacity-note">
-              <strong>{hours(p.capacity - load)}h available.</strong> Reserved
+              <strong>{duration(p.capacity - load)} available.</strong> Reserved
               time covers meetings, administration, and breaks.
             </p>
           </div>
@@ -1148,11 +1149,7 @@ function SignInPage({
               <div className="preview-row" key={s.id}>
                 <span className={`check-circle ${i === 0 ? "first" : ""}`} />
                 <span>{s.title}</span>
-                <small>
-                  {s.minutes >= 60
-                    ? `${hours(s.minutes / 60)}h`
-                    : `${s.minutes} min`}
-                </small>
+                <small>{minutesLabel(s.minutes)}</small>
               </div>
             ))}
           </div>
@@ -1235,7 +1232,7 @@ function readFocus(id: string): FocusTimer {
   return { id, startedAt: Date.now(), accumulated: 0, pausedAt: null };
 }
 function minutesLabel(minutes: number) {
-  return minutes >= 60 ? `${hours(minutes / 60)}h` : `${minutes} min`;
+  return durationMinutes(minutes);
 }
 function clockLabel(ms: number) {
   const total = Math.max(0, Math.floor(ms / 1000));
@@ -1494,7 +1491,7 @@ function CapacityCard({
       <div className="capacity-figure">
         <span className="capacity-label">This week</span>
         <div className="capacity-number">
-          {hours(load)}
+          {duration(load)}
           <span> / {p.capacity}h</span>
         </div>
       </div>
@@ -1507,8 +1504,8 @@ function CapacityCard({
         <p className="capacity-note">
           <strong>
             {over
-              ? `${hours(load - p.capacity)}h over capacity.`
-              : `${hours(p.capacity - load)}h available.`}
+              ? `${duration(load - p.capacity)} over capacity.`
+              : `${duration(p.capacity - load)} available.`}
           </strong>{" "}
           {over
             ? "Review adjustment options to bring this week within capacity."
@@ -1606,7 +1603,7 @@ function Dashboard({
           <div>
             <strong>This week exceeds your capacity.</strong>
             <span>
-              Workload is {hours(load - 30)}h over capacity. Review adjustment
+              Workload is {duration(load - 30)} over capacity. Review adjustment
               options with your superior.
             </span>
           </div>
@@ -1713,7 +1710,7 @@ function Dashboard({
                     </Link>
                   </td>
                   <td>{dueRelative(t.deadline, state.workspace.demo_date)}</td>
-                  <td>{hours(t.personalized_hours)}h</td>
+                  <td>{duration(t.personalized_hours)}</td>
                 </tr>
               ))}
             </tbody>
@@ -1829,7 +1826,7 @@ function TaskInbox({
               {expanded && (
                 <p className="inbox-detail" id={`inbox-${t.id}`}>
                   Confirming adds <b>{t.title}</b> ·{" "}
-                  {hours(t.personalized_hours)}h estimate · due{" "}
+                  {duration(t.personalized_hours)} estimate · due{" "}
                   {due(t.deadline, true)}
                 </p>
               )}
@@ -2037,7 +2034,7 @@ function RevealedStep({
           onDone={() => setTyped(true)}
         />
       </span>
-      <small>{step.minutes} min</small>
+      <small>{minutesLabel(step.minutes)}</small>
     </label>
   );
 }
@@ -2080,9 +2077,9 @@ function TaskRow({
       </span>
       <div className="task-estimate">
         <strong>
-          {hours(task.personalized_hours)}h <span>personalized</span>
+          {duration(task.personalized_hours)} <span>personalized</span>
         </strong>
-        <small>{hours(task.estimated_hours)}h original estimate</small>
+        <small>{duration(task.estimated_hours)} original estimate</small>
       </div>
       <div className="task-progress">
         {needsSteps ? (
@@ -2254,10 +2251,10 @@ function TaskDetail({
         <div>
           <dt>Estimate</dt>
           <dd>
-            {hours(task.personalized_hours)}h
+            {duration(task.personalized_hours)}
             <small>
               {" "}
-              · {hours(task.estimated_hours)}h × {task.multiplier.toFixed(2)}
+              · {duration(task.estimated_hours)} × {task.multiplier.toFixed(2)}
             </small>
           </dd>
         </div>
@@ -2456,7 +2453,7 @@ function Breakdown({
                 />
               </div>
             </div>
-            <b>{hours(t.personalized_hours)}h</b>
+            <b>{duration(t.personalized_hours)}</b>
           </div>
         ))
       ) : (
@@ -2464,7 +2461,7 @@ function Breakdown({
       )}
       <div className="breakdown-total">
         <span>Total active workload</span>
-        <strong>{hours(total)}h</strong>
+        <strong>{duration(total)}</strong>
       </div>
     </div>
   );
@@ -2561,8 +2558,8 @@ function CapacityPage({
                 return (
                   <tr key={category}>
                     <td>{category}</td>
-                    <td>{hours(avg("estimated_hours"))}h</td>
-                    <td>{hours(avg("actual_hours"))}h</td>
+                    <td>{duration(avg("estimated_hours"))}</td>
+                    <td>{duration(avg("actual_hours"))}</td>
                     <td>
                       {m.count} samples ·{" "}
                       {m.categorySpecific ? "category" : "overall"} pattern
@@ -2676,7 +2673,7 @@ function ManagerDashboard({
                   <Progress load={load} capacity={p.capacity} />
                 </div>
                 <strong className="team-hours">
-                  {hours(load)}
+                  {duration(load)}
                   <span> / {p.capacity}h</span>
                 </strong>
                 <Badge load={load} capacity={p.capacity} />
@@ -2730,7 +2727,7 @@ function EmployeeDetail({ state }: { state: AppState }) {
       </PageHeading>
       <dl className="stats-row">
         <div>
-          <dd>{hours(load)}h</dd>
+          <dd>{duration(load)}</dd>
           <dt>Current workload</dt>
         </div>
         <div>
@@ -2738,7 +2735,7 @@ function EmployeeDetail({ state }: { state: AppState }) {
           <dt>Weekly focus capacity</dt>
         </div>
         <div>
-          <dd>{hours(Math.abs(load - p.capacity))}h</dd>
+          <dd>{duration(Math.abs(load - p.capacity))}</dd>
           <dt>{load > p.capacity ? "Above capacity" : "Available"}</dt>
         </div>
       </dl>
@@ -2865,7 +2862,7 @@ function ProposalImpact({
         <div>
           <span>Current week</span>
           <strong>
-            {hours(before)}
+            {duration(before)}
             <small> / 30h</small>
           </strong>
         </div>
@@ -2873,34 +2870,34 @@ function ProposalImpact({
         <div>
           <span>After adjustment</span>
           <strong>
-            {hours(load)}
+            {duration(load)}
             <small> / 30h</small>
           </strong>
         </div>
       </div>
       <Progress load={load} capacity={30} />
       <div className="impact-result">
-        <span>{hours(before - load)}h removed from this week</span>
+        <span>{duration(before - load)} removed from this week</span>
         <Badge load={load} capacity={30} />
       </div>
       {proposal.type === "deadline" && (
         <p>
           {due(task.deadline, true)} → {due(proposal.deadline!, true)}. Next
-          week: {hours(workload(after, "alex", true, state.subtasks))} / 30h.
+          week: {duration(workload(after, "alex", true, state.subtasks))} / 30h.
         </p>
       )}
       {proposal.type === "scope" && (
         <p>
           Removes the detailed competitor analysis section.{" "}
           {load > 30
-            ? `${hours(load - 30)}h would remain over capacity.`
+            ? `${duration(load - 30)} would remain over capacity.`
             : "Remaining workload is within capacity."}
         </p>
       )}
       {other && (
         <p>
           {other.name}:{" "}
-          {hours(workload(after, other.id, false, state.subtasks))} /{" "}
+          {duration(workload(after, other.id, false, state.subtasks))} /{" "}
           {other.capacity}h after reassignment.
         </p>
       )}
@@ -2931,7 +2928,7 @@ function Composer({
       setMessage(
         mode === "counter"
           ? `Thank you for flagging this. I propose we ${proposal.label.charAt(0).toLowerCase() + proposal.label.slice(1)} instead so the plan remains realistic.`
-          : `Based on my current workload, I would like to ${proposal.label.charAt(0).toLowerCase() + proposal.label.slice(1)}. This would bring my active workload to ${hours(workload(applyPreview(state, proposal), "alex", false, state.subtasks))} / 30h. Please let me know if this adjustment works.`,
+          : `Based on my current workload, I would like to ${proposal.label.charAt(0).toLowerCase() + proposal.label.slice(1)}. This would bring my active workload to ${duration(workload(applyPreview(state, proposal), "alex", false, state.subtasks))} / 30h. Please let me know if this adjustment works.`,
       );
   }, [selected, mode]);
   return (
@@ -2980,7 +2977,7 @@ function Composer({
             <span>
               <ProposalTitle state={state} proposal={o} />
               <small>
-                {hours(
+                {duration(
                   workload(state.tasks, "alex", false, state.subtasks) -
                     workload(
                       applyPreview(state, o),
@@ -2988,8 +2985,8 @@ function Composer({
                       false,
                       state.subtasks,
                     ),
-                )}
-                h less this week
+                )}{" "}
+                less this week
                 {workload(
                   applyPreview(state, o),
                   "alex",
@@ -3085,7 +3082,7 @@ function RequestDetail({
             </p>
             <strong>
               Current workload:{" "}
-              {hours(workload(state.tasks, "alex", false, state.subtasks))} /
+              {duration(workload(state.tasks, "alex", false, state.subtasks))} /
               30h
             </strong>
           </div>
