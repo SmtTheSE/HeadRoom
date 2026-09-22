@@ -2094,15 +2094,6 @@ function TaskRow({
           <small className="risk-text">{risk(task, state)}</small>
         )}
       </div>
-      <span className={`priority ${task.priority.toLowerCase()}`}>
-        {task.priority}
-      </span>
-      <div className="task-estimate">
-        <strong>
-          {duration(task.personalized_hours)} <span>personalized</span>
-        </strong>
-        <small>{duration(task.estimated_hours)} original estimate</small>
-      </div>
       <div className="task-progress">
         {needsSteps ? (
           <button
