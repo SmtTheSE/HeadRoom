@@ -1034,39 +1034,44 @@ tr.prio-low td {
 }
 
 /* ---------- dashboard ---------- */
-.focus-list {
+.task-focus-list {
   margin-top: 16px;
 }
-.focus-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 0;
+.task-focus-group {
   border-bottom: 1px solid var(--line);
 }
-.focus-item.current {
+.task-focus-group:last-child {
+  border-bottom: 0;
+}
+.task-focus-group.current {
   margin: 0 -14px;
-  padding: 14px;
+  padding: 0 14px;
   border: 1px solid #cbdcbd;
   border-radius: var(--radius-sm);
   background: var(--green-bg);
 }
-.focus-item.current + .focus-item {
+.task-focus-group.current + .task-focus-group {
   border-top: 0;
 }
-.focus-item:last-child {
-  border-bottom: 0;
+.task-focus-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
 }
-.focus-item > a:not(.btn) {
+.task-focus-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
   flex: 1;
   min-width: 0;
 }
-.focus-item strong {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.875rem;
-  font-weight: 500;
+.task-focus-title strong {
+  overflow: hidden;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--ink);
 }
 .current-step-label {
@@ -1081,15 +1086,88 @@ tr.prio-low td {
   line-height: 1.45;
   letter-spacing: 0.02em;
 }
-.focus-item > a:not(.btn):hover strong {
+.task-focus-title:hover strong {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
-.focus-item > a:not(.btn) span {
-  display: block;
-  margin-top: 2px;
-  font-size: 0.8125rem;
+.task-focus-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.task-expand,
+.step-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: transparent;
   color: var(--muted);
+  transition: all 0.15s;
+}
+.task-expand {
+  width: 32px;
+  height: 32px;
+  border: 1px solid transparent;
+}
+.task-expand:hover:not(:disabled) {
+  border-color: var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+}
+.task-expand svg {
+  transition: transform 0.2s ease;
+}
+.task-expand.expanded svg {
+  transform: rotate(180deg);
+}
+.task-focus-steps {
+  margin: 0 0 10px 22px;
+  padding: 3px 0 3px 20px;
+  border-left: 1px solid var(--line-strong);
+}
+.task-focus-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 42px;
+  padding: 8px 4px 8px 0;
+  font-size: 0.875rem;
+  color: var(--ink);
+}
+.task-focus-step > span {
+  flex: 1;
+}
+.task-focus-step.done > span {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.step-check {
+  width: 24px;
+  height: 24px;
+  border: 1.5px solid var(--line-strong);
+  background: var(--surface);
+  color: transparent;
+}
+.step-check:hover:not(:disabled) {
+  border-color: var(--green-bar);
+  background: var(--green-bg);
+  color: var(--green-text);
+}
+.step-check.current {
+  border-color: var(--green-bar);
+  box-shadow: 0 0 0 3px rgba(47, 124, 77, 0.12);
+}
+.step-check.checked {
+  border-color: var(--green-bar);
+  background: var(--green-bar);
+  color: #fff;
+}
+.task-expand:focus-visible,
+.step-check:focus-visible {
+  outline: 3px solid rgba(47, 124, 77, 0.3);
+  outline-offset: 2px;
 }
 .check-circle {
   display: flex;
@@ -1101,12 +1179,6 @@ tr.prio-low td {
   border-radius: 50%;
   background: var(--surface);
   color: transparent;
-  transition: all 0.15s;
-}
-.check-circle:hover:not(:disabled) {
-  border-color: var(--green-bar);
-  background: var(--green-bg);
-  color: var(--green-text);
 }
 .check-circle.first {
   border-color: var(--green-bar);
@@ -2839,6 +2911,21 @@ td:last-child {
   }
   .capacity-actions {
     justify-content: flex-end;
+  }
+  .task-focus-row {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .task-focus-title {
+    flex-basis: 100%;
+  }
+  .task-focus-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .task-focus-steps {
+    margin-left: 8px;
+    padding-left: 14px;
   }
   .stats-row {
     gap: 16px 28px;

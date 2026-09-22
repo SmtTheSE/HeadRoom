@@ -1590,11 +1590,23 @@ function Dashboard({
   const urgentTasks = state.tasks
     .filter((t) => active(t) && t.employee_id === "alex")
     .sort(byUrgency);
-  const focus = urgentTasks
-    .flatMap((t) =>
-      state.subtasks.filter((s) => s.task_id === t.id && !s.completed),
+  const focusTasks = urgentTasks.filter((task) =>
+    state.subtasks.some((step) => step.task_id === task.id),
+  );
+  const currentStep = focusTasks
+    .flatMap((task) =>
+      state.subtasks
+        .filter((step) => step.task_id === task.id && !step.completed)
+        .sort((a, b) => a.position - b.position),
     )
-    .slice(0, 3);
+    .at(0);
+  const [expandedTasks, setExpandedTasks] = useState<string[]>([]);
+  const toggleTask = (taskId: string) =>
+    setExpandedTasks((open) =>
+      open.includes(taskId)
+        ? open.filter((id) => id !== taskId)
+        : [...open, taskId],
+    );
   const resolved =
     state.negotiations.some((n) => n.status === "approved") && load <= 30;
   return (
@@ -1620,61 +1632,106 @@ function Dashboard({
       <CapacityCard state={state} resolve={resolve} openRequest={open} />
       <section className="section">
         <div className="section-head">
-          <h2>Today’s focus</h2>
-          <span className="muted">{focus.length} steps</span>
+          <h2>Tasks</h2>
+          <span className="muted">
+            {focusTasks.length} {focusTasks.length === 1 ? "task" : "tasks"}
+          </span>
         </div>
-        <div className="focus-list">
-          {focus.length ? (
-            focus.map((s, i) => (
-              <div
-                className={`focus-item ${i === 0 ? "current" : ""}`}
-                key={s.id}
-              >
-                <button
-                  aria-label={`Complete ${s.title}`}
-                  className={`check-circle ${i === 0 ? "first" : ""}`}
-                  disabled={busy}
-                  onClick={() =>
-                    run(
-                      "subtask",
-                      { id: s.id },
-                      stepDoneMessage(focus, s.id),
-                      () => run("subtask", { id: s.id }, "Step reopened."),
-                    )
-                  }
+        <div className="task-focus-list">
+          {focusTasks.length ? (
+            focusTasks.map((task) => {
+              const steps = state.subtasks
+                .filter((step) => step.task_id === task.id)
+                .sort((a, b) => a.position - b.position);
+              const nextStep = steps.find((step) => !step.completed);
+              const isCurrent = currentStep?.task_id === task.id;
+              const expanded = expandedTasks.includes(task.id);
+              const remainingMinutes = steps
+                .filter((step) => !step.completed)
+                .reduce((total, step) => total + step.minutes, 0);
+              return (
+                <div
+                  className={`task-focus-group ${isCurrent ? "current" : ""}`}
+                  key={task.id}
                 >
-                  <Check size={16} />
-                </button>
-                <Link to={`/employee/tasks/${s.task_id}`}>
-                  <strong>
-                    {s.title}
-                    {i === 0 && (
-                      <span className="current-step-label">Current</span>
-                    )}
-                  </strong>
-                  <span>
-                    Main task:{" "}
-                    {state.tasks.find((t) => t.id === s.task_id)?.title}
-                  </span>
-                </Link>
-                <span className="time-pill">{minutesLabel(s.minutes)}</span>
-                {i === 0 ? (
-                  <Link
-                    className="btn primary start-btn"
-                    to={`/employee/focus/${s.id}`}
-                  >
-                    Start
-                  </Link>
-                ) : (
-                  <span className="step-order">
-                    {i === 1 ? "Next" : "Then"}
-                  </span>
-                )}
-              </div>
-            ))
+                  <div className="task-focus-row">
+                    <Link className="task-focus-title" to={`/employee/tasks/${task.id}`}>
+                      <strong>{task.title}</strong>
+                      {isCurrent && (
+                        <span className="current-step-label">Current</span>
+                      )}
+                    </Link>
+                    <div className="task-focus-actions">
+                      <span className="time-pill">
+                        {minutesLabel(remainingMinutes)}
+                      </span>
+                      {nextStep && (
+                        <Link
+                          className="btn primary start-btn"
+                          to={`/employee/focus/${nextStep.id}`}
+                        >
+                          Start
+                        </Link>
+                      )}
+                      <button
+                        type="button"
+                        className={`task-expand ${expanded ? "expanded" : ""}`}
+                        aria-expanded={expanded}
+                        aria-controls={`task-steps-${task.id}`}
+                        aria-label={`${expanded ? "Hide" : "Show"} steps for ${task.title}`}
+                        onClick={() => toggleTask(task.id)}
+                      >
+                        <ChevronDown size={19} />
+                      </button>
+                    </div>
+                  </div>
+                  {expanded && (
+                    <div className="task-focus-steps" id={`task-steps-${task.id}`}>
+                      {steps.map((step) => {
+                        const stepIsCurrent = currentStep?.id === step.id;
+                        return (
+                          <div
+                            className={`task-focus-step ${step.completed ? "done" : ""}`}
+                            key={step.id}
+                          >
+                            <span>{step.title}</span>
+                            <button
+                              type="button"
+                              className={`step-check ${step.completed ? "checked" : ""} ${stepIsCurrent ? "current" : ""}`}
+                              aria-label={`${step.completed ? "Reopen" : "Complete"} ${step.title}`}
+                              aria-pressed={step.completed}
+                              disabled={busy}
+                              onClick={() =>
+                                run(
+                                  "subtask",
+                                  { id: step.id },
+                                  step.completed
+                                    ? "Step reopened."
+                                    : stepDoneMessage(steps, step.id),
+                                  () =>
+                                    run(
+                                      "subtask",
+                                      { id: step.id },
+                                      step.completed
+                                        ? "Step completed again."
+                                        : "Step reopened.",
+                                    ),
+                                )
+                              }
+                            >
+                              {step.completed && <Check size={15} />}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })
           ) : (
             <div className="empty">
-              <p>All focus steps are complete.</p>
+              <p>No task steps available.</p>
               <Link to="/employee/tasks">View tasks</Link>
             </div>
           )}
