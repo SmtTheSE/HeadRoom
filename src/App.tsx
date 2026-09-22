@@ -1778,13 +1778,14 @@ function Dashboard({
           )}
         </div>
       </section>
-      <div className="dashboard-capacity">
+      <section className="section overview-capacity">
+        <h2>Capacity</h2>
         <CapacityCard
           state={state}
           resolve={resolve}
           openRequest={openRequest}
         />
-      </div>
+      </section>
     </>
   );
 }

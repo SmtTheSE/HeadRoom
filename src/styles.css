@@ -1043,11 +1043,62 @@ tr.prio-low td {
 }
 
 /* ---------- dashboard ---------- */
-.dashboard-capacity {
-  margin-top: 32px;
+.overview-capacity .capacity-hero,
+.overview-capacity .capacity-hero.tone-danger,
+.overview-capacity .capacity-hero.tone-warning,
+.overview-capacity .capacity-hero.tone-good,
+.overview-capacity .capacity-hero.tone-blue {
+  margin-top: 16px;
+  padding: 20px 22px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: none;
 }
-.dashboard-capacity .capacity-hero {
-  margin-top: 0;
+.overview-capacity .capacity-number {
+  font-size: 2.4rem;
+}
+.overview-capacity .capacity-label,
+.overview-capacity .capacity-number span,
+.overview-capacity .capacity-detail-head,
+.overview-capacity .capacity-note,
+.overview-capacity .capacity-hero.tone-danger .capacity-label,
+.overview-capacity .capacity-hero.tone-danger .capacity-number span,
+.overview-capacity .capacity-hero.tone-danger .capacity-detail-head,
+.overview-capacity .capacity-hero.tone-danger .capacity-note {
+  color: var(--muted);
+}
+.overview-capacity .capacity-note strong,
+.overview-capacity .capacity-hero.tone-danger .capacity-note strong {
+  color: var(--ink);
+}
+.overview-capacity .progress.on-dark,
+.overview-capacity .capacity-hero.tone-danger .progress.on-dark {
+  background: var(--line);
+}
+.overview-capacity .progress.on-dark > span,
+.overview-capacity .capacity-hero.tone-danger .progress.on-dark > span.over {
+  background: var(--green-bar);
+}
+.overview-capacity .capacity-hero.tone-danger .progress.on-dark > span.over {
+  background: var(--red-bar);
+}
+.overview-capacity .capacity-hero.tone-danger .badge.danger {
+  background: var(--red-bg);
+  color: var(--red-text);
+}
+.overview-capacity .capacity-resolve {
+  border-color: #d8aaa3;
+  background: transparent;
+  color: var(--red-text);
+}
+.overview-capacity .capacity-resolve:hover:not(:disabled) {
+  border-color: var(--red-text);
+  background: var(--red-bg);
+}
+.overview-capacity .capacity-hero :focus-visible {
+  outline-color: var(--ink);
 }
 .task-focus-list {
   margin-top: 16px;
@@ -3140,6 +3191,12 @@ html[data-contrast="high"] .capacity-number span,
 html[data-contrast="high"] .capacity-detail-head,
 html[data-contrast="high"] .capacity-note {
   color: #fff;
+}
+html[data-contrast="high"] .overview-capacity .capacity-label,
+html[data-contrast="high"] .overview-capacity .capacity-number span,
+html[data-contrast="high"] .overview-capacity .capacity-detail-head,
+html[data-contrast="high"] .overview-capacity .capacity-note {
+  color: #000;
 }
 html[data-contrast="high"] .progress {
   background: #d0d0d0;
