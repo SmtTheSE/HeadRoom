@@ -50,7 +50,7 @@ The app supports updates across tabs with a Realtime workspace-version subscript
 - Employee overview, filtered tasks, subtasks, actual hours, and completion.
 - Category estimate learning with global fallback and transparent capacity breakdown.
 - Manager overview and employee detail showing confirmed work information.
-- Persistent requests with editable messages, counter-proposals, acceptance, decline, cancellation, and revision history. Either side can pick from suggested adjustments or use **Manual negotiation**: choose any active task and propose a new deadline, a scope reduction, or a different assignee, with a message — validated against the same server rules.
+- Persistent requests with editable messages, counter-proposals, acceptance, decline, cancellation, and revision history. Either side can pick from suggested adjustments or use **Manual negotiation**: choose any active task and propose a new deadline or a scope reduction (up to half the task), with a message — validated against the same server rules.
 - Deadline, scope, and reassignment previews; server-validated transactional approval.
 - Stale version detection, duplicate approval protection, and cross-tab refresh.
 - Keyboard-friendly native dialogs, visible focus, responsive layouts, loading and error states.
@@ -113,7 +113,7 @@ Task estimates use a personal calibration multiplier: the **median** actual/esti
 
 Weekly workload sums the **remaining effort** of active tasks due that week plus overdue carryover. Progress comes from completed step minutes or logged hours, whichever is further along; completing the whole task removes it. This is due-date-bucket planning of remaining work, not an hour-by-hour schedule.
 
-Capacity is configured, not clinically inferred. Available <70%; On track 70–<90%; Near capacity 90–100%; Over capacity >100%. Scope reductions can offer partial relief without resolving the conflict. Reassignment uses the recipient's own estimate multiplier and checks capacity.
+Capacity is configured, not clinically inferred. Available <70%; On track 70–<90%; Near capacity 90–100%; Over capacity >100%. Scope reductions (any task, up to half its hours) can offer partial relief without resolving the conflict. Reassignment uses the recipient's own estimate multiplier and checks capacity.
 
 ## Verification
 

@@ -2929,7 +2929,9 @@ function ProposalImpact({
       )}
       {proposal.type === "scope" && (
         <p>
-          Removes the detailed competitor analysis section.{" "}
+          Removes {duration(proposal.scope_hours ?? 0)} of scope from{" "}
+          {task.title}; the estimate becomes{" "}
+          {duration(task.personalized_hours - (proposal.scope_hours ?? 0))}.{" "}
           {load > 30
             ? `${duration(load - 30)} would remain over capacity.`
             : "Remaining workload is within capacity."}
@@ -2967,16 +2969,12 @@ function Composer({
   const tasks = state.tasks
     .filter((t) => t.employee_id === "alex" && active(t))
     .sort(byUrgency);
-  const people = state.profiles.filter(
-    (p) => p.id !== "alex" && p.id !== "sarah",
-  );
   const [selected, setSelected] = useState(0),
     [message, setMessage] = useState(""),
     [taskId, setTaskId] = useState(tasks[0]?.id ?? ""),
-    [kind, setKind] = useState<"Deadline" | "Scope" | "Assignee">("Deadline"),
+    [kind, setKind] = useState<"Deadline" | "Scope">("Deadline"),
     [date, setDate] = useState(""),
-    [scope, setScope] = useState("1"),
-    [assignee, setAssignee] = useState(people[0]?.id ?? "");
+    [scope, setScope] = useState("1");
   const task = tasks.find((t) => t.id === taskId);
   const dayAfter = (iso: string) => {
     const d = new Date(new Date(iso).getTime() + 86400000);
@@ -3012,37 +3010,19 @@ function Composer({
         error: null,
       };
     }
-    if (kind === "Scope") {
-      const amount = Number(scope);
-      if (task.scope_saving <= 0)
-        return { proposal: null, error: "This task has no reducible scope." };
-      if (
-        !(amount > 0) ||
-        amount > task.scope_saving ||
-        amount >= task.personalized_hours
-      )
-        return {
-          proposal: null,
-          error: `Enter between 0.5 and ${duration(task.scope_saving)}.`,
-        };
+    const amount = Number(scope),
+      maxScope = Math.floor(task.personalized_hours * 2) / 4; // half the task, to the nearest 30 minutes
+    if (!(amount > 0) || amount > maxScope)
       return {
-        proposal: {
-          ...base,
-          type: "scope",
-          scope_hours: amount,
-          label: `Reduce ${task.title} by ${duration(amount)}`,
-        },
-        error: null,
+        proposal: null,
+        error: `Enter between 0.5 and ${duration(maxScope)} (half of this task).`,
       };
-    }
-    const person = people.find((p) => p.id === assignee);
-    if (!person) return { proposal: null, error: "Choose a teammate." };
     return {
       proposal: {
         ...base,
-        type: "reassign",
-        employee_id: person.id,
-        label: `Reassign ${task.title} to ${person.name.split(" ")[0]}`,
+        type: "scope",
+        scope_hours: amount,
+        label: `Reduce ${task.title} by ${duration(amount)}`,
       },
       error: null,
     };
@@ -3160,7 +3140,7 @@ function Composer({
             <span>Change</span>
             <Segmented
               label="What to change"
-              options={["Deadline", "Scope", "Assignee"] as const}
+              options={["Deadline", "Scope"] as const}
               value={kind}
               onChange={setKind}
             />
@@ -3189,33 +3169,14 @@ function Composer({
                 type="number"
                 step="0.5"
                 min="0.5"
-                max={task.scope_saving}
+                max={Math.floor(task.personalized_hours * 2) / 4}
                 value={scope}
-                disabled={task.scope_saving <= 0}
                 onChange={(e) => setScope(e.target.value)}
               />
               <small>
-                {task.scope_saving > 0
-                  ? `Up to ${duration(task.scope_saving)} of this task can be removed.`
-                  : "This task has no reducible scope."}
-              </small>
-            </label>
-          )}
-          {kind === "Assignee" && task && (
-            <label className="field">
-              <span>Assign to</span>
-              <select
-                value={assignee}
-                onChange={(e) => setAssignee(e.target.value)}
-              >
-                {people.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} · {p.job_title}
-                  </option>
-                ))}
-              </select>
-              <small>
-                Their estimate uses their own pace; capacity is checked on send.
+                This task is {duration(task.personalized_hours)}; you can
+                propose removing up to half. The remaining estimate updates
+                below.
               </small>
             </label>
           )}

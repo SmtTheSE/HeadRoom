@@ -153,6 +153,23 @@ await assert.rejects(
   db.query("select public.hr_seed($1)", [s.workspace.id]),
   /permission denied/,
 );
+// Manual scope reductions work on any task: above zero, at most half the task.
+await act("reset", {});
+await act("activate", {});
+await assert.rejects(
+  act("request", {
+    proposal: { type: "scope", task_id: "analytics", task_version: 1, scope_hours: 4, label: "Reduce Analytics Report by 4h" },
+    message: "Too much",
+  }),
+  /at most half/,
+);
+await act("request", {
+  proposal: { type: "scope", task_id: "analytics", task_version: 1, scope_hours: 2, label: "Reduce Analytics Report by 2h" },
+  message: "Drop the appendix",
+});
+await act("approve", { role: "manager", id: s.negotiations[0].id });
+assert.equal(load(), 32);
+console.log("PASS: manual scope reduction accepted on a task without preset scope saving; capped at half");
 // AI breakdown persists validated steps for a task that has none.
 async function breakdown(taskId, steps, version = s.workspace.version) {
   const r = await db.query(
