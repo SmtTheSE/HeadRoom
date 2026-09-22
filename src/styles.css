@@ -258,6 +258,16 @@ main:focus {
   font-size: 0.75rem;
   font-weight: 600;
 }
+.nav-count.task-alert {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  background: var(--red-solid);
+  line-height: 1;
+}
 .sidebar-bottom {
   margin-top: auto;
 }
@@ -806,7 +816,7 @@ tr.prio-low td {
   color: var(--muted);
 }
 
-/* task inbox: potential tasks detected from Teams, shown above the greeting */
+/* task inbox: potential tasks detected from Teams, shown on My Tasks */
 .inbox {
   display: flex;
   flex-direction: column;

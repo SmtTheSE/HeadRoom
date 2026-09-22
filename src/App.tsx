@@ -516,6 +516,11 @@ export default function App() {
       return false;
     }
   });
+  const [dismissedTasks, setDismissedTasks] = useState<string[]>(readDismissed);
+  const updateDismissedTasks = (next: string[]) => {
+    setDismissedTasks(next);
+    localStorage.setItem(DISMISSED_KEY, JSON.stringify(next));
+  };
   function toggleLlmApi() {
     const next = !llmApiEnabled;
     setLlmApiEnabled(next);
@@ -661,6 +666,7 @@ export default function App() {
       cache.setQueryData(["workspace", session.user.id], updated);
       if (op === "reset") {
         localStorage.removeItem(DISMISSED_KEY);
+        setDismissedTasks([]);
       }
       setNotice(
         message ??
@@ -767,6 +773,12 @@ export default function App() {
   const pending = state.negotiations.filter(
     (n) => n.status === "pending" || n.status === "counter_proposed",
   ).length;
+  const potentialTasks = state.tasks.filter(
+    (task) =>
+      task.employee_id === "alex" &&
+      task.status === "draft" &&
+      !dismissedTasks.includes(task.id),
+  ).length;
   const p = person(state, role === "employee" ? "alex" : "sarah");
   const toast = notice && (
     <div
@@ -835,6 +847,9 @@ export default function App() {
               <NavLink to="/employee/tasks">
                 <Folder size={18} />
                 My tasks
+                {potentialTasks > 0 && (
+                  <span className="nav-count task-alert">{potentialTasks}</span>
+                )}
               </NavLink>
               <NavLink to="/employee/capacity">
                 <ChartNoAxesColumn size={18} />
@@ -1003,7 +1018,6 @@ export default function App() {
                     state={state}
                     busy={busy}
                     run={run}
-                    notify={notify}
                     resolve={() => setCompose({ mode: "request" })}
                     userName={firstName(session, "Alex")}
                   />
@@ -1016,6 +1030,10 @@ export default function App() {
                     state={state}
                     busy={busy}
                     ai={ai}
+                    run={run}
+                    notify={notify}
+                    dismissedTasks={dismissedTasks}
+                    onDismissedTasksChange={updateDismissedTasks}
                     onBreakdown={runBreakdown}
                   />
                 }
@@ -1571,14 +1589,12 @@ function Dashboard({
   state,
   busy,
   run,
-  notify,
   resolve,
   userName,
 }: {
   state: AppState;
   busy: boolean;
   run: Run;
-  notify: Notify;
   resolve: () => void;
   userName: string;
 }) {
@@ -1615,7 +1631,6 @@ function Dashboard({
         eyebrow={`${longDate.format(now)} · ${clock.format(now)}`}
         title={`${greeting(now)}, ${userName}.`}
       />
-      <TaskInbox state={state} busy={busy} run={run} notify={notify} />
       {resolved && (
         <div className="banner success">
           <div>
@@ -1775,13 +1790,16 @@ function TaskInbox({
   busy,
   run,
   notify,
+  dismissed,
+  onDismissedChange,
 }: {
   state: AppState;
   busy: boolean;
   run: Run;
   notify: Notify;
+  dismissed: string[];
+  onDismissedChange: (ids: string[]) => void;
 }) {
-  const [dismissed, setDismissed] = useState<string[]>(readDismissed);
   const [openId, setOpenId] = useState<string | null>(null);
   const [receivedAt] = useState(() => new Date());
   const [showAll, setShowAll] = useState(false);
@@ -1812,8 +1830,7 @@ function TaskInbox({
       </div>
     );
   const persist = (next: string[]) => {
-    setDismissed(next);
-    localStorage.setItem(DISMISSED_KEY, JSON.stringify(next));
+    onDismissedChange(next);
   };
   const dismiss = (id: string) => {
     const title = drafts.find((t) => t.id === id)?.title ?? "Task";
@@ -2140,11 +2157,19 @@ function TasksPage({
   state,
   busy,
   ai,
+  run,
+  notify,
+  dismissedTasks,
+  onDismissedTasksChange,
   onBreakdown,
 }: {
   state: AppState;
   busy: boolean;
   ai: AiState;
+  run: Run;
+  notify: Notify;
+  dismissedTasks: string[];
+  onDismissedTasksChange: (ids: string[]) => void;
   onBreakdown: Breakdown;
 }) {
   const navigate = useNavigate();
@@ -2173,6 +2198,14 @@ function TasksPage({
       <PageHeading
         title="My tasks"
         subtitle="Assigned work with personalized time estimates."
+      />
+      <TaskInbox
+        state={state}
+        busy={busy}
+        run={run}
+        notify={notify}
+        dismissed={dismissedTasks}
+        onDismissedChange={onDismissedTasksChange}
       />
       <Segmented
         label="Filter tasks"
