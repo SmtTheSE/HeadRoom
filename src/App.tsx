@@ -25,6 +25,7 @@ import {
   Folder,
   House,
   ArrowRight,
+  Bell,
   Check,
   ChevronDown,
   Gauge,
@@ -1585,6 +1586,29 @@ function CapacityCard({
     </section>
   );
 }
+const SCHEDULED_TASKS = [
+  {
+    id: "email-proposal",
+    title: "Email proposal to Northstar Labs",
+    detail: "Client follow-up",
+    time: "In 2 hours",
+    soon: true,
+  },
+  {
+    id: "research-follow-up",
+    title: "Follow up with Sarah on competitor research",
+    detail: "Design team",
+    time: "Tomorrow, 9:00 AM",
+    soon: false,
+  },
+  {
+    id: "presentation-review",
+    title: "Send presentation draft for review",
+    detail: "Client presentation",
+    time: "Friday, 3:00 PM",
+    soon: false,
+  },
+] as const;
 function Dashboard({
   state,
   busy,
@@ -1819,6 +1843,28 @@ function Dashboard({
               </button>
             </div>
           )}
+        </div>
+      </section>
+      <section className="section scheduled-tasks-section">
+        <div className="section-head">
+          <h2>Scheduled Tasks</h2>
+          <span className="muted">{SCHEDULED_TASKS.length} reminders</span>
+        </div>
+        <div className="scheduled-task-list">
+          {SCHEDULED_TASKS.map((item) => (
+            <div className="scheduled-task-row" key={item.id}>
+              <span className="scheduled-task-icon" aria-hidden="true">
+                <Bell size={16} />
+              </span>
+              <div className="scheduled-task-copy">
+                <strong>{item.title}</strong>
+                <small>{item.detail}</small>
+              </div>
+              <span className={`scheduled-time ${item.soon ? "soon" : ""}`}>
+                {item.time}
+              </span>
+            </div>
+          ))}
         </div>
       </section>
       <section className="section overview-capacity">

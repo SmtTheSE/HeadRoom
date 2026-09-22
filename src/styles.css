@@ -1103,6 +1103,59 @@ tr.prio-low td {
 .task-focus-list {
   margin-top: 16px;
 }
+.scheduled-task-list {
+  margin-top: 10px;
+}
+.scheduled-task-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line);
+}
+.scheduled-task-row:last-child {
+  border-bottom: 0;
+}
+.scheduled-task-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--oat-strong);
+  color: var(--green-text);
+}
+.scheduled-task-copy {
+  min-width: 0;
+}
+.scheduled-task-copy strong,
+.scheduled-task-copy small {
+  display: block;
+}
+.scheduled-task-copy strong {
+  overflow: hidden;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink);
+}
+.scheduled-task-copy small {
+  margin-top: 2px;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.scheduled-time {
+  font-size: 0.8125rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.scheduled-time.soon {
+  font-weight: 600;
+  color: var(--green-text);
+}
 .task-focus-filter {
   display: flex;
   align-items: center;
@@ -3031,6 +3084,12 @@ td:last-child {
   .task-focus-filter {
     align-items: flex-start;
     flex-direction: column;
+  }
+  .scheduled-task-row {
+    grid-template-columns: 34px minmax(0, 1fr);
+  }
+  .scheduled-time {
+    grid-column: 2;
   }
   .task-focus-main {
     flex-basis: 100%;
