@@ -659,17 +659,55 @@ textarea:focus-visible {
   color: #fff;
 }
 .capacity-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
+  flex-shrink: 0;
+  padding: 6px 10px;
   border-radius: var(--radius-sm);
-  color: #b7cbc9;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #fff;
+  text-decoration: underline;
+  text-decoration-color: rgb(255 255 255 / 0.4);
+  text-underline-offset: 3px;
 }
 .capacity-link:hover {
   background: rgb(255 255 255 / 0.1);
-  color: #fff;
+}
+
+/* first-run wayfinding */
+.wayfinding {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: -8px 0 20px;
+  padding: 14px 8px 14px 18px;
+  border-radius: var(--radius);
+  background: var(--green-bg);
+  color: var(--green-text);
+}
+.wayfinding p {
+  flex: 1;
+  font-size: 0.9375rem;
+}
+.wayfinding strong {
+  color: var(--ink);
+}
+.wayfinding .icon-btn {
+  color: var(--green-text);
+}
+.view-as {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.view-as > span {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.step-order {
+  min-width: 52px;
+  text-align: right;
+  font-size: 0.8125rem;
+  color: var(--muted);
 }
 
 /* task inbox: potential tasks detected from Teams, shown above the greeting */
@@ -2530,8 +2568,16 @@ td:last-child {
     width: 100%;
     justify-content: space-between;
   }
-  .top-actions .ghost span {
+  .top-actions .ghost span,
+  .view-as > span {
     display: none;
+  }
+  .wayfinding {
+    flex-wrap: wrap;
+    padding: 14px 16px;
+  }
+  .wayfinding p {
+    flex-basis: 100%;
   }
   .topbar-display {
     display: inline-flex;
@@ -2791,7 +2837,6 @@ html[data-simple="on"] .page-heading p {
 .inbox-collapsed {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   margin-bottom: 24px;
   padding: 12px 16px;
@@ -2800,6 +2845,12 @@ html[data-simple="on"] .page-heading p {
   border-radius: var(--radius-sm);
   background: var(--surface);
   font-size: 0.875rem;
+}
+.inbox-collapsed > span {
+  flex: 1;
+}
+.inbox-collapsed .inbox-logo {
+  position: static;
 }
 .display-btn {
   gap: 7px;

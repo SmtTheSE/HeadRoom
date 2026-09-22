@@ -623,7 +623,10 @@ export default function App() {
         current.workspace.version,
       );
       cache.setQueryData(["workspace", session.user.id], updated);
-      if (op === "reset") localStorage.removeItem(DISMISSED_KEY);
+      if (op === "reset") {
+        localStorage.removeItem(DISMISSED_KEY);
+        localStorage.removeItem(WELCOMED_KEY);
+      }
       setNotice(
         message ??
           (op === "request"
@@ -820,6 +823,23 @@ export default function App() {
           <div id="profile-settings" popover="auto" className="profile-popover">
             <div className="llm-setting">
               <div>
+                <div className="setting-title">Demo workspace</div>
+                <div className="setting-subtitle">
+                  Restore the sample tasks, time entries, and requests.
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn secondary"
+                disabled={busy}
+                onClick={() => setResetOpen(true)}
+              >
+                <RotateCcw size={14} />
+                Reset
+              </button>
+            </div>
+            <div className="llm-setting">
+              <div>
                 <div className="setting-title" id="llm-api-label">
                   AI task breakdown
                 </div>
@@ -908,27 +928,19 @@ export default function App() {
           </span>
           <div className="top-actions">
             <DisplayButton className="topbar-display" />
-            <Segmented
-              label="View as"
-              options={["Employee", "Manager"] as const}
-              value={role === "employee" ? "Employee" : "Manager"}
-              onChange={(v) =>
-                changeRole(v === "Employee" ? "employee" : "manager")
-              }
-            />
-            <button
-              className="btn ghost"
-              aria-label="Reset demo"
-              disabled={busy}
-              onClick={() =>
-                session ? setResetOpen(true) : navigate("/sign-in")
-              }
-            >
-              <RotateCcw size={15} />
-              <span>Reset demo</span>
-            </button>
+            <div className="view-as">
+              <span id="view-as-label">Viewing as</span>
+              <Segmented
+                label="Viewing as"
+                options={["Employee", "Manager"] as const}
+                value={role === "employee" ? "Employee" : "Manager"}
+                onChange={(v) =>
+                  changeRole(v === "Employee" ? "employee" : "manager")
+                }
+              />
+            </div>
             {!session && (
-              <Link className="btn primary" to="/sign-in">
+              <Link className="btn secondary" to="/sign-in">
                 Sign in
               </Link>
             )}
@@ -1504,12 +1516,8 @@ function CapacityCard({
         </p>
       </div>
       {!onCapacityPage && (
-        <Link
-          className="capacity-link"
-          to="/employee/capacity"
-          aria-label="View capacity breakdown"
-        >
-          <ArrowRight size={18} />
+        <Link className="capacity-link" to="/employee/capacity">
+          Details
         </Link>
       )}
     </section>
@@ -1531,6 +1539,9 @@ function Dashboard({
   userName: string;
 }) {
   const now = useNow();
+  const [welcomed, setWelcomed] = useState(
+    () => localStorage.getItem(WELCOMED_KEY) === "1",
+  );
   const load = workload(state.tasks),
     open = state.negotiations.find((n) =>
       ["pending", "counter_proposed"].includes(n.status),
@@ -1555,6 +1566,27 @@ function Dashboard({
         eyebrow={`${longDate.format(now)} · ${clock.format(now)}`}
         title={`${greeting(now)}, ${userName}.`}
       />
+      {focus[0] && !welcomed && (
+        <div className="wayfinding" role="region" aria-label="Where to start">
+          <p>
+            Start with <strong>{focus[0].title}</strong> — your first step today
+            ({minutesLabel(focus[0].minutes)}).
+          </p>
+          <Link className="btn primary" to={`/employee/focus/${focus[0].id}`}>
+            Start
+          </Link>
+          <button
+            className="icon-btn"
+            aria-label="Dismiss this hint"
+            onClick={() => {
+              localStorage.setItem(WELCOMED_KEY, "1");
+              setWelcomed(true);
+            }}
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
       <TaskInbox state={state} busy={busy} run={run} notify={notify} />
       {resolved && (
         <div className="banner success">
@@ -1625,12 +1657,18 @@ function Dashboard({
                   </span>
                 </Link>
                 <span className="time-pill">{minutesLabel(s.minutes)}</span>
-                <Link
-                  className={`btn ${i === 0 ? "primary" : "secondary"} start-btn`}
-                  to={`/employee/focus/${s.id}`}
-                >
-                  Start
-                </Link>
+                {i === 0 ? (
+                  <Link
+                    className={`btn ${welcomed ? "primary" : "secondary"} start-btn`}
+                    to={`/employee/focus/${s.id}`}
+                  >
+                    Start
+                  </Link>
+                ) : (
+                  <span className="step-order">
+                    {i === 1 ? "Next" : "Then"}
+                  </span>
+                )}
               </div>
             ))
           ) : (
@@ -1698,6 +1736,7 @@ const TEAMS_MESSAGES: Record<
   },
 };
 const DISMISSED_KEY = "headroom.dismissed";
+const WELCOMED_KEY = "headroom.welcomed";
 function readDismissed(): string[] {
   try {
     return JSON.parse(localStorage.getItem(DISMISSED_KEY) ?? "[]");
@@ -1723,7 +1762,6 @@ function TaskInbox({
   const [dismissed, setDismissed] = useState<string[]>(readDismissed);
   const [openId, setOpenId] = useState<string | null>(null);
   const [receivedAt] = useState(() => new Date());
-  const { display } = useDisplay();
   const [showAll, setShowAll] = useState(false);
   const drafts = state.tasks.filter(
     (t) =>
@@ -1732,14 +1770,21 @@ function TaskInbox({
       !dismissed.includes(t.id),
   );
   if (!drafts.length) return null;
-  if (display.simple && !showAll)
+  if (!showAll)
     return (
       <div className="inbox-collapsed">
+        <TeamsMark />
         <span>
-          {drafts.length} potential task{drafts.length === 1 ? "" : "s"} from
-          Microsoft Teams
+          <strong>
+            {drafts.length} potential task{drafts.length === 1 ? "" : "s"}
+          </strong>{" "}
+          from Microsoft Teams
         </span>
-        <button className="btn secondary" onClick={() => setShowAll(true)}>
+        <button
+          className="btn secondary"
+          onClick={() => setShowAll(true)}
+          aria-expanded={false}
+        >
           Show
         </button>
       </div>
