@@ -1599,9 +1599,7 @@ function Dashboard({
   userName: string;
 }) {
   const now = useNow();
-  const [taskView, setTaskView] = useState<"Priority tasks" | "All tasks">(
-    "Priority tasks",
-  );
+  const [taskView, setTaskView] = useState<"Priority" | "All">("Priority");
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const load = workload(state.tasks, "alex", false, state.subtasks);
   const openRequest = state.negotiations.find((request) =>
@@ -1616,7 +1614,7 @@ function Dashboard({
   priorityCutoff.setUTCDate(priorityCutoff.getUTCDate() + 2);
   const visibleTasks = urgentTasks.filter(
     (task) =>
-      taskView === "All tasks" ||
+      taskView === "All" ||
       Date.parse(task.deadline) < priorityCutoff.getTime(),
   );
   const focusTasks = [...visibleTasks].sort((a, b) => {
@@ -1669,7 +1667,7 @@ function Dashboard({
         <div className="task-focus-filter">
           <Segmented
             label="Task view"
-            options={["Priority tasks", "All tasks"] as const}
+            options={["Priority", "All"] as const}
             value={taskView}
             onChange={setTaskView}
           />
@@ -1815,7 +1813,7 @@ function Dashboard({
               <p>No tasks match this view.</p>
               <button
                 className="btn secondary"
-                onClick={() => setTaskView("All tasks")}
+                onClick={() => setTaskView("All")}
               >
                 Show all tasks
               </button>

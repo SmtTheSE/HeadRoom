@@ -1109,20 +1109,24 @@ tr.prio-low td {
   margin-top: 14px;
 }
 .task-focus-filter .segmented {
-  gap: 1px;
-  padding: 2px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  gap: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
   background: transparent;
 }
 .task-focus-filter .segmented button {
-  padding: 4px 9px;
-  border-radius: 6px;
+  padding: 3px 0 5px;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
   font-size: 0.75rem;
   font-weight: 500;
+  color: var(--muted);
 }
 .task-focus-filter .segmented button.selected {
-  background: var(--oat-strong);
+  border-bottom-color: var(--green-bar);
+  background: transparent;
+  color: var(--ink);
   box-shadow: none;
 }
 .task-focus-group {
