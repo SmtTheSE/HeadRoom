@@ -2972,9 +2972,15 @@ function Composer({
   const [selected, setSelected] = useState(0),
     [message, setMessage] = useState(""),
     [taskId, setTaskId] = useState(tasks[0]?.id ?? ""),
-    [kind, setKind] = useState<"Deadline" | "Scope">("Deadline"),
+    [kind, setKind] = useState<"Deadline" | "Scope" | "Assignee">("Deadline"),
     [date, setDate] = useState(""),
-    [scope, setScope] = useState("1");
+    [scope, setScope] = useState("1"),
+    [assignee, setAssignee] = useState("");
+  // Reassignment is a manager's call: only offered on counter-proposals.
+  const canReassign = mode === "counter";
+  const people = canReassign
+    ? state.profiles.filter((p) => p.id !== "alex" && p.id !== "sarah")
+    : [];
   const task = tasks.find((t) => t.id === taskId);
   const dayAfter = (iso: string) => {
     const d = new Date(new Date(iso).getTime() + 86400000);
@@ -3006,6 +3012,19 @@ function Composer({
           type: "deadline",
           deadline: iso,
           label: `Move ${task.title} to ${due(iso, true)}`,
+        },
+        error: null,
+      };
+    }
+    if (kind === "Assignee") {
+      const person = people.find((p) => p.id === assignee);
+      if (!person) return { proposal: null, error: "Choose a teammate." };
+      return {
+        proposal: {
+          ...base,
+          type: "reassign",
+          employee_id: person.id,
+          label: `Reassign ${task.title} to ${person.name.split(" ")[0]}`,
         },
         error: null,
       };
@@ -3140,7 +3159,13 @@ function Composer({
             <span>Change</span>
             <Segmented
               label="What to change"
-              options={["Deadline", "Scope"] as const}
+              options={
+                (canReassign
+                  ? ["Deadline", "Scope", "Assignee"]
+                  : ["Deadline", "Scope"]) as (
+                  "Deadline" | "Scope" | "Assignee"
+                )[]
+              }
               value={kind}
               onChange={setKind}
             />
@@ -3177,6 +3202,26 @@ function Composer({
                 This task is {duration(task.personalized_hours)}; you can
                 propose removing up to half. The remaining estimate updates
                 below.
+              </small>
+            </label>
+          )}
+          {kind === "Assignee" && task && canReassign && (
+            <label className="field">
+              <span>Assign to</span>
+              <select
+                value={assignee}
+                onChange={(e) => setAssignee(e.target.value)}
+              >
+                <option value="">Choose a teammate</option>
+                {people.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} · {p.job_title}
+                  </option>
+                ))}
+              </select>
+              <small>
+                Their estimate uses their own pace; their capacity is checked
+                when you send.
               </small>
             </label>
           )}
