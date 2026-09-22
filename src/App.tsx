@@ -1018,7 +1018,6 @@ export default function App() {
                     state={state}
                     busy={busy}
                     run={run}
-                    resolve={() => setCompose({ mode: "request" })}
                     userName={firstName(session, "Alex")}
                   />
                 }
@@ -1034,6 +1033,7 @@ export default function App() {
                     notify={notify}
                     dismissedTasks={dismissedTasks}
                     onDismissedTasksChange={updateDismissedTasks}
+                    resolve={() => setCompose({ mode: "request" })}
                     onBreakdown={runBreakdown}
                   />
                 }
@@ -1589,20 +1589,15 @@ function Dashboard({
   state,
   busy,
   run,
-  resolve,
   userName,
 }: {
   state: AppState;
   busy: boolean;
   run: Run;
-  resolve: () => void;
   userName: string;
 }) {
   const now = useNow();
-  const load = workload(state.tasks, "alex", false, state.subtasks),
-    open = state.negotiations.find((n) =>
-      ["pending", "counter_proposed"].includes(n.status),
-    );
+  const load = workload(state.tasks, "alex", false, state.subtasks);
   const urgentTasks = state.tasks
     .filter((t) => active(t) && t.employee_id === "alex")
     .sort(byUrgency);
@@ -1644,7 +1639,6 @@ function Dashboard({
           </Link>
         </div>
       )}
-      <CapacityCard state={state} resolve={resolve} openRequest={open} />
       <section className="section">
         <div className="section-head">
           <h2>Tasks</h2>
@@ -2161,6 +2155,7 @@ function TasksPage({
   notify,
   dismissedTasks,
   onDismissedTasksChange,
+  resolve,
   onBreakdown,
 }: {
   state: AppState;
@@ -2170,6 +2165,7 @@ function TasksPage({
   notify: Notify;
   dismissedTasks: string[];
   onDismissedTasksChange: (ids: string[]) => void;
+  resolve: () => void;
   onBreakdown: Breakdown;
 }) {
   const navigate = useNavigate();
@@ -2193,11 +2189,19 @@ function TasksPage({
               : true,
     )
     .sort(byUrgency);
+  const openRequest = state.negotiations.find((request) =>
+    ["pending", "counter_proposed"].includes(request.status),
+  );
   return (
     <>
       <PageHeading
         title="My tasks"
         subtitle="Assigned work with personalized time estimates."
+      />
+      <CapacityCard
+        state={state}
+        resolve={resolve}
+        openRequest={openRequest}
       />
       <TaskInbox
         state={state}
