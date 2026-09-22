@@ -165,12 +165,12 @@ export const previewState: AppState = {
     ),
   ],
   subtasks: [
-    "Review analytics with John",
-    "Collect relevant data",
-    "Draft presentation",
-    "Add visuals",
-    "Review slides",
-    "Finalize and send",
+    "Confirm the client decision and write the deck’s one-sentence takeaway",
+    "Collect the 3 analytics findings that directly support the recommendation",
+    "Build a 6-slide outline with context, evidence, options, recommendation, and next steps",
+    "Add one labeled chart or screenshot to every slide that makes a factual claim",
+    "Run a 5-minute rehearsal and flag slides that take more than 45 seconds",
+    "Fix flagged slides, verify names and numbers, then export the review PDF",
   ].map((title, i) => ({
     id: `presentation-${i}`,
     task_id: "presentation",

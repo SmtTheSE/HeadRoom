@@ -10,6 +10,8 @@ import {
   geminiRequest,
 } from "../supabase/functions/_shared/gemini";
 import { createBreakdownHandler } from "../supabase/functions/_shared/handler";
+import { generateDemoSteps } from "./breakdown";
+import { previewState } from "./seed";
 const task: BreakdownTask = {
   title: "Analyze client activation",
   description:
@@ -31,6 +33,20 @@ const modelResponse = (
   text = JSON.stringify({ steps }),
   finishReason = "STOP",
 ) => json({ candidates: [{ finishReason, content: { parts: [{ text }] } }] });
+describe("local demonstration breakdown", () => {
+  it("uses bounded, observable goals for competitor research", () => {
+    const competitor = previewState.tasks.find((item) => item.id === "research")!;
+    const result = generateDemoSteps(competitor);
+    const checklist = result.steps.map((step) => step.title).join(" ");
+    expect(result.steps).toHaveLength(6);
+    expect(checklist).toContain("3 competitors");
+    expect(checklist).toContain("2 screenshots");
+    expect(checklist).toContain("3 product opportunities");
+    expect(result.total_minutes).toBe(
+      Math.round(competitor.personalized_hours * 12) * 5,
+    );
+  });
+});
 describe("Gemini task breakdown", () => {
   it("sends task context, system instructions, a JSON schema, and only a header key", async () => {
     const fetcher = vi.fn(async () => modelResponse());

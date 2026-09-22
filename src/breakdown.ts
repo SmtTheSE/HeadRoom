@@ -8,18 +8,77 @@ import {
 export function generateDemoSteps(task: Task): BreakdownResult {
   const title = task.title.trim().slice(0, 70);
   const plans: Record<string, string[]> = {
-    research: ["Define the comparison criteria", "Collect relevant examples and evidence", "Compare findings and identify opportunities", "Summarize findings and review the recommendations"],
-    presentation: ["Outline the audience needs and main message", "Draft the slide content", "Refine visuals and supporting examples", "Review the deck and rehearse the delivery"],
-    testing: ["List the scenarios and expected outcomes", "Run the checks and record results", "Investigate failures and document issues", "Retest fixes and summarize results"],
-    analytics: ["Define the questions and required metrics", "Collect and check the available data", "Analyze patterns and prepare findings", "Review calculations and summarize conclusions"],
-    design: ["Review the brief and design requirements", "Sketch possible approaches", "Develop the selected design", "Check the design against the brief"],
+    research: [
+      `Open the brief for ${title} and list the 3 questions the research must answer`,
+      "Add 3 competitors to a table with columns for audience, price, core promise, and source link",
+      "Complete each competitor onboarding flow and save 2 screenshots that show key decisions",
+      "Score each flow from 1–5 for setup effort, clarity, and time to first value",
+      "Write 3 product opportunities, each linked to one screenshot or comparison-table finding",
+      "Check every claim and link, then export a one-page research summary",
+    ],
+    presentation: [
+      `Write the audience, decision, and one-sentence takeaway for ${title} at the top of the deck`,
+      "Create a 6-slide outline with one question or claim assigned to each slide",
+      "Draft each slide with one headline and no more than 3 supporting bullets",
+      "Add one chart, screenshot, or example to every slide that needs evidence",
+      "Run a 5-minute read-through and mark any slide that takes more than 45 seconds",
+      "Fix marked slides, check names and numbers, then export the review copy",
+    ],
+    testing: [
+      `List the 5 highest-risk user flows for ${title} and state the expected result for each`,
+      "Prepare the test account, starting screen, and sample input needed for every flow",
+      "Run each flow once and record pass, fail, or blocked with one screenshot",
+      "Reproduce every failure and write exact steps plus the expected and actual result",
+      "Retest fixed or blocked flows and update their status in the results table",
+      "Count passes and failures, then write the 3 issues that need attention first",
+    ],
+    analytics: [
+      `Write the 3 decisions ${title} must support and map one metric to each decision`,
+      "Export the current and previous period values for every required metric into one sheet",
+      "Check date ranges, duplicates, blanks, and totals; record each correction beside the data",
+      "Calculate change percentages and split the results by the 2 most useful segments",
+      "Create 3 charts and add a one-sentence takeaway directly below each chart",
+      "Verify every number against the source, then write 3 recommended next actions",
+    ],
+    design: [
+      `Turn the brief for ${title} into a checklist of required screens, states, and constraints`,
+      "Collect 3 relevant references and label the specific pattern worth borrowing from each",
+      "Sketch 3 distinct layouts and annotate the primary action in every layout",
+      "Build the strongest layout with default, empty, loading, and error states",
+      "Check spacing, contrast, labels, and keyboard order against the requirements checklist",
+      "Apply fixes and prepare one review link with 3 focused questions for feedback",
+    ],
   };
-  let titles = plans[task.category.toLowerCase()] ?? ["Review the requirements", "Prepare a first draft", "Refine the deliverable", "Check the result against the brief"];
-  if (task.personalized_hours < 1 / 3) titles = [titles[0], titles[1], titles[3]];
+  let titles = plans[task.category.toLowerCase()] ?? [
+    `Open the brief for ${title} and write the required result in one sentence`,
+    "List the files, inputs, and people already named in the brief; mark anything missing",
+    "Create the smallest complete first version of the requested deliverable",
+    "Check every requirement against the first version and mark each one complete or missing",
+    "Fix the missing items and remove anything that is outside the requested scope",
+    "Name the final file clearly and prepare it for the requested handoff",
+  ];
+  if (task.personalized_hours < 1 / 3)
+    titles = [titles[0], titles[2], titles[titles.length - 1]];
   // Large tasks need enough steps to keep each allocation within the 8-hour limit.
-  if (task.personalized_hours > 32) titles = titles.flatMap(t => [t, `Complete and check: ${t.toLowerCase()}`]);
-  const steps = allocateMinutes(titles.map((t, i) => ({ title: i === 0 ? `${t}: ${title}`.slice(0, 120) : t, minutes: i === 0 || i === titles.length - 1 ? 15 : 30 })), task.personalized_hours);
-  return { steps, source: "mock", model: "local-demo-planner", total_minutes: steps.reduce((sum, s) => sum + s.minutes, 0) };
+  if (task.personalized_hours > 32)
+    titles = [
+      ...titles,
+      "Ask one reviewer to flag unclear, unsupported, or incomplete parts",
+      "Resolve every review note and run the final requirements check again",
+    ];
+  const steps = allocateMinutes(
+    titles.map((stepTitle, index) => ({
+      title: stepTitle.slice(0, 120),
+      minutes: index === 0 || index === titles.length - 1 ? 15 : 30,
+    })),
+    task.personalized_hours,
+  );
+  return {
+    steps,
+    source: "mock",
+    model: "local-demo-planner",
+    total_minutes: steps.reduce((sum, step) => sum + step.minutes, 0),
+  };
 }
 
 export async function generateSteps(
