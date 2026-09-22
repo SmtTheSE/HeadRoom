@@ -1658,21 +1658,42 @@ function Dashboard({
               const remainingMinutes = steps
                 .filter((step) => !step.completed)
                 .reduce((total, step) => total + step.minutes, 0);
+              const completedSteps = steps.filter(
+                (step) => step.completed,
+              ).length;
+              const progressPercent = Math.round(
+                (completedSteps / steps.length) * 100,
+              );
               return (
                 <div
                   className={`task-focus-group ${isCurrent ? "current" : ""}`}
                   key={task.id}
                 >
                   <div className="task-focus-row">
-                    <Link
-                      className="task-focus-title"
-                      to={`/employee/tasks/${task.id}`}
-                    >
-                      <strong>{task.title}</strong>
-                      {isCurrent && (
-                        <span className="current-step-label">Current</span>
-                      )}
-                    </Link>
+                    <div className="task-focus-main">
+                      <Link
+                        className="task-focus-title"
+                        to={`/employee/tasks/${task.id}`}
+                      >
+                        <strong>{task.title}</strong>
+                        {isCurrent && (
+                          <span className="current-step-label">Current</span>
+                        )}
+                      </Link>
+                      <div className="task-focus-progress">
+                        <div
+                          className="task-focus-progress-track"
+                          role="progressbar"
+                          aria-label={`${task.title} progress`}
+                          aria-valuemin={0}
+                          aria-valuemax={steps.length}
+                          aria-valuenow={completedSteps}
+                        >
+                          <span style={{ width: `${progressPercent}%` }} />
+                        </div>
+                        <small>{progressPercent}% complete</small>
+                      </div>
+                    </div>
                     <div className="task-focus-actions">
                       <span className="time-pill">
                         {minutesLabel(remainingMinutes)}

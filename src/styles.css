@@ -1068,11 +1068,14 @@ tr.prio-low td {
   gap: 12px;
   padding: 14px 0;
 }
+.task-focus-main {
+  flex: 1;
+  min-width: 0;
+}
 .task-focus-title {
   display: flex;
   align-items: center;
   gap: 9px;
-  flex: 1;
   min-width: 0;
 }
 .task-focus-title strong {
@@ -1098,6 +1101,34 @@ tr.prio-low td {
 .task-focus-title:hover strong {
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+.task-focus-progress {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  max-width: 360px;
+  margin-top: 9px;
+}
+.task-focus-progress-track {
+  flex: 1;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgb(31 30 28 / 0.11);
+}
+.task-focus-progress-track > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--green-bar);
+  transition: width 0.35s ease;
+}
+.task-focus-progress small {
+  min-width: 76px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--muted);
+  white-space: nowrap;
 }
 .task-focus-actions {
   display: flex;
@@ -2909,7 +2940,7 @@ td:last-child {
     align-items: flex-start;
     flex-wrap: wrap;
   }
-  .task-focus-title {
+  .task-focus-main {
     flex-basis: 100%;
   }
   .task-focus-title strong {
