@@ -1103,7 +1103,10 @@ tr.prio-low td {
   border-radius: 50%;
   background: transparent;
   color: var(--muted);
-  transition: all 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
 }
 .task-expand {
   width: 32px;
@@ -1165,8 +1168,8 @@ tr.prio-low td {
 }
 .task-expand:focus-visible,
 .step-check:focus-visible {
-  outline: 3px solid rgba(47, 124, 77, 0.3);
-  outline-offset: 2px;
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
 }
 .check-circle {
   display: flex;
@@ -2899,6 +2902,11 @@ td:last-child {
   .task-focus-title {
     flex-basis: 100%;
   }
+  .task-focus-title strong {
+    overflow: visible;
+    white-space: normal;
+    text-overflow: clip;
+  }
   .task-focus-actions {
     width: 100%;
     justify-content: flex-end;
@@ -3018,6 +3026,12 @@ html[data-text="large"] {
 html[data-text="larger"] {
   font-size: 130%;
 }
+/* the panel promises nothing is cut off, so titles wrap once text is scaled */
+html[data-text] .task-focus-title strong {
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+}
 html[data-contrast="high"] {
   --paper: #ffffff;
   --oat: #ffffff;
@@ -3067,8 +3081,12 @@ html[data-contrast="high"] .segmented button.selected {
   outline-offset: -2px;
 }
 html[data-contrast="high"] .capacity-hero,
-html[data-contrast="high"] .preview-card {
+html[data-contrast="high"] .preview-card,
+html[data-contrast="high"] .task-focus-group.current {
   border: 2px solid #000;
+}
+html[data-contrast="high"] .task-expand {
+  border-color: #000;
 }
 html[data-contrast="high"] .capacity-label,
 html[data-contrast="high"] .capacity-number span,
@@ -3089,7 +3107,7 @@ html[data-contrast="high"] :focus-visible {
 }
 html[data-simple="on"] .optional,
 html[data-simple="on"] .caption,
-html[data-simple="on"] .section-description,
+html[data-simple="on"] .capacity-note,
 html[data-simple="on"] .privacy-note,
 html[data-simple="on"] .signin-visual {
   display: none;

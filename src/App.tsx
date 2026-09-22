@@ -281,8 +281,8 @@ function DisplayPanel({ onClose }: { onClose: () => void }) {
               Simplified view
             </div>
             <div className="setting-subtitle">
-              Shows only today’s focus and your capacity. Upcoming work,
-              explanations, and the Teams inbox are collapsed.
+              Hides explanations and collapses the Teams inbox, so the page is
+              your capacity and your tasks.
             </div>
           </div>
           <Switch
@@ -1655,7 +1655,10 @@ function Dashboard({
                   key={task.id}
                 >
                   <div className="task-focus-row">
-                    <Link className="task-focus-title" to={`/employee/tasks/${task.id}`}>
+                    <Link
+                      className="task-focus-title"
+                      to={`/employee/tasks/${task.id}`}
+                    >
                       <strong>{task.title}</strong>
                       {isCurrent && (
                         <span className="current-step-label">Current</span>
@@ -1686,7 +1689,10 @@ function Dashboard({
                     </div>
                   </div>
                   {expanded && (
-                    <div className="task-focus-steps" id={`task-steps-${task.id}`}>
+                    <div
+                      className="task-focus-steps"
+                      id={`task-steps-${task.id}`}
+                    >
                       {steps.map((step) => {
                         const stepIsCurrent = currentStep?.id === step.id;
                         return (
