@@ -1587,9 +1587,6 @@ function Dashboard({
     open = state.negotiations.find((n) =>
       ["pending", "counter_proposed"].includes(n.status),
     );
-  const tasks = state.tasks
-    .filter((t) => t.employee_id === "alex" && active(t))
-    .sort((a, b) => a.deadline.localeCompare(b.deadline));
   const urgentTasks = state.tasks
     .filter((t) => active(t) && t.employee_id === "alex")
     .sort(byUrgency);
@@ -1681,52 +1678,6 @@ function Dashboard({
               <Link to="/employee/tasks">View tasks</Link>
             </div>
           )}
-        </div>
-      </section>
-      <section className="section optional">
-        <div className="section-head">
-          <h2>Due this week</h2>
-          <Link
-            className="text-link"
-            to="/employee/tasks"
-            aria-label="View all tasks"
-          >
-            View all
-          </Link>
-        </div>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Task</th>
-                <th>Due</th>
-                <th>Estimate</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tasks.slice(0, 4).map((t) => (
-                <tr key={t.id} className={`prio-${t.priority.toLowerCase()}`}>
-                  <td>
-                    <Link to={`/employee/tasks/${t.id}`}>
-                      <span>
-                        {t.title}
-                        {risk(t, state) && (
-                          <small className="risk-text">{risk(t, state)}</small>
-                        )}
-                      </span>
-                    </Link>
-                  </td>
-                  <td>
-                    <DueChip
-                      iso={t.deadline}
-                      demoDate={state.workspace.demo_date}
-                    />
-                  </td>
-                  <td>{duration(t.personalized_hours)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       </section>
     </>
