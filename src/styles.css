@@ -762,14 +762,50 @@ textarea:focus-visible {
   color: var(--text);
   font-weight: 500;
 }
+/* rank answers "what do I do first": position in the plan, first one loudest */
+.task-rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.task-rank.first,
+.task-focus-group.current .task-rank {
+  border-color: var(--green-bar);
+  background: var(--green-bar);
+  color: #fff;
+}
+.task-order-reason {
+  margin: 3px 0 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
 /* priority: high stands out, low recedes */
 .task-row.prio-high .task-link strong,
 tr.prio-high td:first-child a {
   font-weight: 700;
 }
+html[data-contrast="high"] .task-rank {
+  border-color: #000;
+}
 .task-row.prio-high .priority {
-  background: var(--red-solid);
-  color: #fff;
+  padding: 2px 8px;
+  background: var(--red-bg);
+  color: var(--red-text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  vertical-align: baseline;
 }
 .task-row.prio-low .task-link strong,
 tr.prio-low td:first-child a {
@@ -780,7 +816,6 @@ tr.prio-low td:first-child a {
 .task-row.prio-low .task-progress,
 tr.prio-low td {
   color: var(--muted);
-  opacity: 0.85;
 }
 .task-row.prio-low .priority {
   background: transparent;
@@ -1227,12 +1262,16 @@ tr.prio-low td {
   margin-top: 0 !important;
   padding: 2px 8px;
   border-radius: 999px;
-  background: var(--green-bar);
+  background: var(--green-text);
   color: #fff !important;
   font-size: 0.6875rem !important;
   font-weight: 600;
   line-height: 1.45;
   letter-spacing: 0.02em;
+}
+/* the user's own pick is stated, not argued for */
+.current-step-label.chosen {
+  background: var(--ink);
 }
 .task-focus-title:hover strong {
   text-decoration: underline;

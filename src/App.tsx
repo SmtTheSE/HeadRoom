@@ -366,6 +366,16 @@ function dueTone(iso: string, demoDate: string) {
       : "neutral";
 }
 /** Deadline as a chip whose weight matches how soon it is. */
+/** Why a task sits where it does, in the ordering's own terms. */
+function orderReason(task: Task, demoDate: string) {
+  const when = dueRelative(task.deadline, demoDate);
+  const timing = when.includes("overdue")
+    ? when
+    : `due ${when === "Today" || when === "Tomorrow" ? when.toLowerCase() : when}`;
+  return task.priority === "Medium"
+    ? timing
+    : `${timing} and marked ${task.priority.toLowerCase()} priority`;
+}
 function DueChip({ iso, demoDate }: { iso: string; demoDate: string }) {
   const label = dueRelative(iso, demoDate);
   return (
@@ -1638,9 +1648,7 @@ function Dashboard({
   const urgentTasks = state.tasks
     .filter((t) => active(t) && t.employee_id === "alex")
     .sort(byUrgency);
-  const priorityCutoff = new Date(
-    `${state.workspace.demo_date}T00:00:00Z`,
-  );
+  const priorityCutoff = new Date(`${state.workspace.demo_date}T00:00:00Z`);
   priorityCutoff.setUTCDate(priorityCutoff.getUTCDate() + 2);
   const visibleTasks = urgentTasks.filter(
     (task) =>
@@ -1653,10 +1661,10 @@ function Dashboard({
     return byUrgency(a, b);
   });
   const currentTask = focusTasks[0];
+  /* What the ordering recommends, regardless of what the user pinned. */
+  const recommendedTask = visibleTasks[0];
   const currentStep = state.subtasks
-    .filter(
-      (step) => step.task_id === currentTask?.id && !step.completed,
-    )
+    .filter((step) => step.task_id === currentTask?.id && !step.completed)
     .sort((a, b) => a.position - b.position)
     .at(0);
   const [expandedTasks, setExpandedTasks] = useState<string[]>([]);
@@ -1722,24 +1730,43 @@ function Dashboard({
                 steps.length ? (completedSteps / steps.length) * 100 : 0,
               );
               const isCurrentTask = currentTask?.id === task.id;
-              const working =
-                ai?.taskId === task.id && ai.phase === "working";
+              const working = ai?.taskId === task.id && ai.phase === "working";
+              const isChosen = selectedTaskId === task.id;
+              const isRecommended = recommendedTask?.id === task.id;
               return (
                 <div
                   className={`task-focus-group ${isCurrentTask ? "current" : ""}`}
                   key={task.id}
                 >
                   <div className="task-focus-row">
+                    <span className="task-rank" aria-hidden="true">
+                      {taskIndex + 1}
+                    </span>
+                    <span className="sr-only">
+                      Number {taskIndex + 1} in your plan.
+                    </span>
                     <div className="task-focus-main">
                       <Link
                         className="task-focus-title"
                         to={`/employee/tasks/${task.id}`}
                       >
                         <strong>{task.title}</strong>
-                        {isCurrentTask && (
-                          <span className="current-step-label">Current</span>
-                        )}
+                        {isChosen ? (
+                          <span className="current-step-label chosen">
+                            In focus
+                          </span>
+                        ) : isRecommended ? (
+                          <span className="current-step-label">
+                            {selectedTaskId ? "Recommended" : "Do first"}
+                          </span>
+                        ) : null}
                       </Link>
+                      {isRecommended && !isChosen && (
+                        <p className="task-order-reason">
+                          {selectedTaskId ? "Recommended" : "First"} because it
+                          is {orderReason(task, state.workspace.demo_date)}.
+                        </p>
+                      )}
                       <div className="task-focus-progress">
                         <div
                           className="task-focus-progress-track"
@@ -2224,12 +2251,14 @@ function RevealedStep({
 }
 function TaskRow({
   task,
+  rank,
   state,
   busy,
   ai,
   onBreakdown,
 }: {
   task: Task;
+  rank: number;
   state: AppState;
   busy: boolean;
   ai: AiState;
@@ -2241,12 +2270,29 @@ function TaskRow({
     working = ai?.taskId === task.id && ai.phase === "working";
   return (
     <div className={`task-row prio-${task.priority.toLowerCase()}`}>
+      {rank > 0 && (
+        <>
+          <span
+            className={`task-rank ${rank === 1 ? "first" : ""}`}
+            aria-hidden="true"
+          >
+            {rank}
+          </span>
+          <span className="sr-only">Number {rank} in your plan.</span>
+        </>
+      )}
       <div className="task-main">
         <Link className="task-link" to={`/employee/tasks/${task.id}`}>
           <strong>{task.title}</strong>
         </Link>
         <span>
           <DueChip iso={task.deadline} demoDate={state.workspace.demo_date} />
+          {task.priority === "High" && (
+            <>
+              {" "}
+              <span className="priority high">High priority</span>
+            </>
+          )}
           <span className="bullet" aria-hidden="true">
             ·
           </span>{" "}
@@ -2332,6 +2378,10 @@ function TasksPage({
               : true,
     )
     .sort(byUrgency);
+  const plan = state.tasks
+    .filter((t) => t.employee_id === "alex" && active(t))
+    .sort(byUrgency)
+    .map((t) => t.id);
   return (
     <>
       <PageHeading
@@ -2358,6 +2408,7 @@ function TasksPage({
             <TaskRow
               key={t.id}
               task={t}
+              rank={plan.indexOf(t.id) + 1}
               state={state}
               busy={busy}
               ai={ai}
